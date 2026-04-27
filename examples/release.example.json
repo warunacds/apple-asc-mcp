@@ -1,0 +1,57 @@
+{
+  "$schema": "Sample release metadata. Pass the relevant fields to the matching MCP tool calls.",
+  "app": {
+    "bundleId": "com.example.myapp"
+  },
+  "version": {
+    "versionString": "1.4.0",
+    "platform": "IOS",
+    "copyright": "© 2026 Example Co.",
+    "releaseType": "AFTER_APPROVAL"
+  },
+  "build": {
+    "ipaPath": "/absolute/path/to/build/export/MyApp.ipa",
+    "bundleVersion": "42",
+    "bundleShortVersionString": "1.4.0"
+  },
+  "localizations": [
+    {
+      "locale": "en-US",
+      "description": "MyApp helps you do the thing. New in 1.4: faster sync, HealthKit integration, redesigned dashboard.",
+      "keywords": "fitness,running,health,steps,workout,coach",
+      "promotionalText": "New: HealthKit integration!",
+      "whatsNew": "• Faster sync\n• HealthKit integration\n• Redesigned dashboard\n• Bug fixes",
+      "marketingUrl": "https://example.com/myapp",
+      "supportUrl": "https://example.com/support"
+    },
+    {
+      "locale": "ja",
+      "description": "MyApp は… (Japanese description)",
+      "keywords": "フィットネス,ランニング,ヘルス",
+      "whatsNew": "• より速い同期\n• HealthKit 連携\n• ダッシュボード刷新"
+    }
+  ],
+  "screenshots": {
+    "en-US": {
+      "APP_IPHONE_67": [
+        "/abs/path/screenshots/en-US/iphone-67/01.png",
+        "/abs/path/screenshots/en-US/iphone-67/02.png",
+        "/abs/path/screenshots/en-US/iphone-67/03.png"
+      ],
+      "APP_IPAD_PRO_3GEN_129": [
+        "/abs/path/screenshots/en-US/ipad-129/01.png",
+        "/abs/path/screenshots/en-US/ipad-129/02.png"
+      ]
+    }
+  },
+  "reviewDetails": {
+    "contactFirstName": "Jane",
+    "contactLastName": "Reviewer",
+    "contactEmail": "jane@example.com",
+    "contactPhone": "+15551234567",
+    "demoAccountRequired": true,
+    "demoAccountName": "reviewer@example.com",
+    "demoAccountPassword": "ReplaceMe!",
+    "notes": "Use the demo account on the login screen. The app exercises HealthKit; please grant access on first launch."
+  }
+}
