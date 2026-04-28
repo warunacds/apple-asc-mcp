@@ -6,6 +6,8 @@
  * Transport: stdio. Wire it into Claude Code via:
  *   claude mcp add appstore-connect-mcp -- node /path/to/dist/index.js
  *
+ * `--diagnose` runs a credential / Xcode preflight and exits without starting MCP.
+ *
  * All output to stdout is the MCP protocol; logs go to stderr and ~/logs/appstore-connect-mcp/.
  */
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
@@ -21,8 +23,23 @@ import { AscClient, AscApiError } from "./client.js";
 import { ALL_TOOLS } from "./tools/index.js";
 import { jsonSchemaFor, type ToolContext } from "./tools/registry.js";
 import { log } from "./log.js";
+import { runDiagnose } from "./diagnose.js";
 
 async function main() {
+  const argv = process.argv.slice(2);
+  if (argv.includes("--diagnose") || argv.includes("-d")) {
+    const code = await runDiagnose();
+    process.exit(code);
+  }
+  if (argv.includes("--help") || argv.includes("-h")) {
+    process.stdout.write(usage());
+    process.exit(0);
+  }
+  if (argv.includes("--version") || argv.includes("-v")) {
+    process.stdout.write("appstore-connect-mcp 0.1.0-alpha.1\n");
+    process.exit(0);
+  }
+
   log.info("appstore-connect-mcp starting", { pid: process.pid, node: process.version });
 
   // Lazy: don't fail startup if creds are missing — let `asc_whoami` surface the error
@@ -37,11 +54,11 @@ async function main() {
     log.info("loaded App Store Connect credentials", { keyId: config.keyId, issuerId: config.issuerId, keyPath: config.privateKeyPath });
   } catch (err) {
     configError = err as Error;
-    log.warn("App Store Connect credentials not loaded yet (server will still start)", { err: (err as Error).message });
+    log.warn("App Store Connect credentials not loaded yet (server will still start; run with --diagnose to debug)", { err: (err as Error).message });
   }
 
   const server = new Server(
-    { name: "appstore-connect-mcp", version: "0.1.0" },
+    { name: "appstore-connect-mcp", version: "0.1.0-alpha.1" },
     { capabilities: { tools: {} } },
   );
 
@@ -66,7 +83,8 @@ async function main() {
         : `Server failed to load App Store Connect credentials: ${configError?.message ?? "unknown error"}`;
       return mcpError(
         `App Store Connect credentials are not configured. ${detail} ` +
-        `Set APP_STORE_CONNECT_KEY_ID, APP_STORE_CONNECT_ISSUER_ID, and APP_STORE_CONNECT_PRIVATE_KEY_PATH (or place AuthKey_<KEYID>.p8 under ~/.appstoreconnect/private_keys/).`,
+        `Set APP_STORE_CONNECT_KEY_ID, APP_STORE_CONNECT_ISSUER_ID, and APP_STORE_CONNECT_PRIVATE_KEY_PATH (or place AuthKey_<KEYID>.p8 under ~/.appstoreconnect/private_keys/). ` +
+        `Run \`appstore-connect-mcp --diagnose\` to debug interactively.`,
       );
     }
 
@@ -97,6 +115,24 @@ async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
   log.info("appstore-connect-mcp ready (stdio)");
+
+  // Graceful shutdown — give in-flight tool calls a moment to finish before exit.
+  const shutdown = (sig: string) => {
+    log.info(`received ${sig}, shutting down`);
+    server.close().catch((e) => log.error("error closing server", e)).finally(() => {
+      // Brief grace period for log writes.
+      setTimeout(() => process.exit(0), 100);
+    });
+  };
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
+  process.on("SIGINT", () => shutdown("SIGINT"));
+  process.on("uncaughtException", (err) => {
+    log.error("uncaughtException", err);
+    process.exit(1);
+  });
+  process.on("unhandledRejection", (err) => {
+    log.error("unhandledRejection", err);
+  });
 }
 
 function mcpError(message: string) {
@@ -116,6 +152,32 @@ function redactArgs(args: unknown): unknown {
     else out[k] = v;
   }
   return out;
+}
+
+function usage(): string {
+  return `appstore-connect-mcp — Model Context Protocol server for App Store Connect
+
+USAGE
+  appstore-connect-mcp [options]
+
+OPTIONS
+  --diagnose, -d   Run preflight checks (creds, JWT, API reachability, Xcode) and exit.
+  --version, -v    Print version and exit.
+  --help, -h       This message.
+
+ENVIRONMENT
+  APP_STORE_CONNECT_KEY_ID            10-character Key ID (required)
+  APP_STORE_CONNECT_ISSUER_ID         UUID of the issuer (required)
+  APP_STORE_CONNECT_PRIVATE_KEY_PATH  path to AuthKey_<KEYID>.p8 (or)
+  APP_STORE_CONNECT_PRIVATE_KEY       PEM contents inline
+  APP_STORE_CONNECT_PREFER_REST_UPLOAD  "true" (default) or "false"
+
+EXAMPLES
+  appstore-connect-mcp --diagnose
+  claude mcp add appstore-connect-mcp -- node $(npm root -g)/appstore-connect-mcp/dist/index.js
+
+Logs: ~/logs/appstore-connect-mcp/<date>.log
+`;
 }
 
 main().catch((err) => {

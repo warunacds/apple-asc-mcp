@@ -81,6 +81,14 @@ async function uploadViaRest(ipaPath: string, platform: string, bundleVersion: s
   const st = await stat(ipaPath);
   const fileName = basename(ipaPath);
 
+  // [VERIFY] WWDC25 introduced /v1/buildUploads. Two details are inferred from sibling APIs and
+  // could need adjustment when surfaced in real responses:
+  //   1. `platform` — we use the standard Platform enum (IOS / MAC_OS / TV_OS / VISION_OS) used
+  //      everywhere else in the API. The session transcript used a generic placeholder.
+  //   2. `assetType: "BUILD"` for the main IPA/PKG. Other values may exist for accompanying
+  //      assets (dSYMs, etc.) but Apple has not publicly enumerated them as of this writing.
+  // If you hit a 400 from either step, set APP_STORE_CONNECT_PREFER_REST_UPLOAD=false to fall
+  // back to `xcrun altool --upload-package` and please file an issue with the JSON:API error.
   log.info("REST upload step 1/3: create buildUpload", { fileName, fileSize: st.size, platform, bundleVersion });
   const created = await client.post<{ data: { id: string; attributes: BuildUploadAttrs } }>("/v1/buildUploads", {
     data: { type: "buildUploads", attributes: { bundleVersion, platform } },
