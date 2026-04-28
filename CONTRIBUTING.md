@@ -5,7 +5,7 @@ Thanks for considering a contribution. This project's goal is to let Claude driv
 ## Development
 
 ```bash
-git clone https://github.com/your-org/appstore-connect-mcp
+git clone https://github.com/warunacds/appstore-connect-mcp
 cd appstore-connect-mcp
 npm install
 npm run build

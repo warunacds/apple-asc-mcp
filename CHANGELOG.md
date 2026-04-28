@@ -26,5 +26,5 @@ First publishable cut. The foundation works and the spec coverage is current as 
 - `xc_archive`, `xc_export_ipa`, and `asc_validate_ipa` require macOS with Xcode.
 - Two `[VERIFY]` items from the WWDC 2025 buildUploads spec — the exact `Platform` enum spelling and the full `BuildUploadFile.assetType` enum — are inferred from sibling APIs and may need adjustment when surfaced in real responses.
 
-[Unreleased]: https://github.com/your-org/appstore-connect-mcp/compare/v0.1.0-alpha.1...HEAD
-[0.1.0-alpha.1]: https://github.com/your-org/appstore-connect-mcp/releases/tag/v0.1.0-alpha.1
+[Unreleased]: https://github.com/warunacds/appstore-connect-mcp/compare/v0.1.0-alpha.1...HEAD
+[0.1.0-alpha.1]: https://github.com/warunacds/appstore-connect-mcp/releases/tag/v0.1.0-alpha.1

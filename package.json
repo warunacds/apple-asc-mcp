@@ -4,13 +4,13 @@
   "description": "Model Context Protocol server that lets Claude Code drive App Store Connect end-to-end (build, upload, metadata, screenshots, submission).",
   "license": "MIT",
   "author": "appstore-connect-mcp contributors",
-  "homepage": "https://github.com/your-org/appstore-connect-mcp#readme",
+  "homepage": "https://github.com/warunacds/appstore-connect-mcp#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-org/appstore-connect-mcp.git"
+    "url": "https://github.com/warunacds/appstore-connect-mcp.git"
   },
   "bugs": {
-    "url": "https://github.com/your-org/appstore-connect-mcp/issues"
+    "url": "https://github.com/warunacds/appstore-connect-mcp/issues"
   },
   "keywords": [
     "mcp",

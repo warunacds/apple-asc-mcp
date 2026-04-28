@@ -1,6 +1,6 @@
 # appstore-connect-mcp
 
-[![CI](https://github.com/your-org/appstore-connect-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/your-org/appstore-connect-mcp/actions/workflows/ci.yml)
+[![CI](https://github.com/warunacds/appstore-connect-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/warunacds/appstore-connect-mcp/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/appstore-connect-mcp.svg)](https://www.npmjs.com/package/appstore-connect-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Node ≥20](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](https://nodejs.org)
@@ -361,7 +361,7 @@ Out of scope for v1 (will probably ship in v2):
 ## Development
 
 ```bash
-git clone https://github.com/your-org/appstore-connect-mcp
+git clone https://github.com/warunacds/appstore-connect-mcp
 cd appstore-connect-mcp
 npm install
 
