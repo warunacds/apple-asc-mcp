@@ -122,3 +122,28 @@ export interface BuildUploadFileAttrs {
   uploaded?: boolean;
   sourceFileChecksum?: string;
 }
+
+// In-App Purchases (v2). Covers Consumable / Non-Consumable / Non-Renewing Subscription.
+// Auto-renewable subscriptions are a separate resource family (phase 2).
+
+export interface InAppPurchaseAttrs {
+  name?: string; // reference name (internal; not shown to customers)
+  productId?: string; // the StoreKit product identifier
+  inAppPurchaseType?: "CONSUMABLE" | "NON_CONSUMABLE" | "NON_RENEWING_SUBSCRIPTION";
+  state?: string; // e.g. MISSING_METADATA, READY_TO_SUBMIT, WAITING_FOR_REVIEW, APPROVED, DEVELOPER_ACTION_NEEDED
+  reviewNote?: string;
+  familySharable?: boolean;
+}
+
+export interface IapLocalizationAttrs {
+  locale?: string;
+  name?: string; // customer-facing display name (≤30)
+  description?: string; // customer-facing description (≤45)
+  state?: string;
+}
+
+export interface IapPricePointAttrs {
+  customerPrice?: string; // e.g. "0.99"
+  proceeds?: string; // your cut after Apple's commission
+  // territory lives in relationships, sideload with include=territory to resolve it
+}

@@ -2,7 +2,13 @@ import type { Tool } from "./registry.js";
 import {
   whoamiTool, listAppsTool, getAppTool, listBuildsTool, getBuildTool,
   listVersionsTool, getVersionTool, listLocalizationsTool, listCategoriesTool,
+  listTerritoriesTool,
 } from "./discovery.js";
+import {
+  listInAppPurchasesTool, getInAppPurchaseTool, createInAppPurchaseTool, setIapLocalizationTool,
+  listIapPricePointsTool, setIapPriceTool, setIapAvailabilityTool, uploadIapReviewScreenshotTool,
+  submitIapForReviewTool,
+} from "./iap.js";
 import {
   createVersionTool, updateVersionTool, attachBuildTool, setVersionLocalizationTool,
   releaseToStoreTool, getEditableAppInfoTool, setAppCategoriesTool, setAppInfoLocalizationTool,
@@ -22,7 +28,7 @@ export const ALL_TOOLS: Tool[] = [
   // Discovery (read-only)
   whoamiTool, listAppsTool, getAppTool, listBuildsTool, getBuildTool,
   listVersionsTool, getVersionTool, listLocalizationsTool, listCategoriesTool,
-  releaseStatusTool,
+  listTerritoriesTool, releaseStatusTool,
 
   // Build & upload
   xcArchiveTool, xcExportTool, validateIpaTool, uploadIpaTool, waitForBuildTool,
@@ -41,4 +47,9 @@ export const ALL_TOOLS: Tool[] = [
 
   // TestFlight
   listBetaGroupsTool, setBetaWhatsNewTool, distributeToBetaGroupsTool, submitForBetaReviewTool,
+
+  // In-App Purchases (v2)
+  listInAppPurchasesTool, getInAppPurchaseTool, createInAppPurchaseTool, setIapLocalizationTool,
+  listIapPricePointsTool, setIapPriceTool, setIapAvailabilityTool, uploadIapReviewScreenshotTool,
+  submitIapForReviewTool,
 ];
