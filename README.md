@@ -37,7 +37,7 @@ Claude does the work; you review the result in App Store Connect and tap **Submi
 
 ## What it does
 
-49 MCP tools split across:
+61 MCP tools split across:
 
 - **Discovery** (11) — `asc_whoami`, list/get apps, builds, versions, localizations, categories, territories, plus `asc_release_status`: a one-shot snapshot that tells Claude what's blocking submission.
 - **Build & upload** (5) — `xc_archive`, `xc_export_ipa`, `asc_validate_ipa`, `asc_upload_ipa` (defaults to the new REST `/v1/buildUploads` flow from WWDC 2025; falls back to `xcrun altool` on demand), `asc_wait_for_build_processing`.
@@ -45,7 +45,8 @@ Claude does the work; you review the result in App Store Connect and tap **Submi
 - **Screenshots & previews** (7) — idempotent set-find-or-create, full reservation → multipart PUT → MD5 commit. Same code path covers iPhone/iPad/Watch/TV/Vision Pro/Mac and iMessage variants.
 - **Review submission** (4) — modern `reviewSubmissions` flow.
 - **TestFlight** (4) — list beta groups, set "What to test", distribute, submit for beta review.
-- **In-App Purchases** (9) — create products, upsert per-locale name/description, price (base territory + auto-equalize), set availability, attach a review screenshot, submit. Consumable / Non-Consumable / Non-Renewing Subscription. (Auto-renewable subscriptions and offers are the next phase.)
+- **In-App Purchases** (9) — create products, upsert per-locale name/description, price (base territory + auto-equalize), set availability, attach a review screenshot, submit. Consumable / Non-Consumable / Non-Renewing Subscription.
+- **Subscriptions** (12) — subscription groups + group localizations, create auto-renewable subscriptions, per-locale name/description, pricing (base + auto-equalize), availability, introductory offers (free trial / pay-as-you-go / pay-up-front), review screenshot, and group-level submission.
 
 See the [tool reference](#tool-reference) for the full table.
 
@@ -281,6 +282,37 @@ Typical flow:
 > **Pricing model.** Apple uses fixed, server-defined price points per territory — you pick a tier, you don't type an amount. `asc_set_iap_price` resolves a `customerPrice` like `"4.99"` to the matching point in the base territory; pass an explicit `pricePointId` (from `asc_list_iap_price_points`) for precision. Territories you don't list are auto-derived from the base.
 
 > **Validation status.** Like the rest of the server, the IAP tools have not been exercised against live Apple traffic. Four spec details are marked `[VERIFY]` in `src/tools/iap.ts` (the `inAppPurchaseV2` vs `inAppPurchase` relationship keys, the standalone `inAppPurchaseSubmissions` submit path, and price-schedule auto-equalization). If one 400s, attach the JSON:API error body to an issue.
+
+### Subscriptions
+
+Auto-renewable subscriptions. A subscription lives inside a subscription **group**; a customer can hold only one active subscription per group, and `groupLevel` ranks the upgrade/downgrade tiers. Submission happens at the **group** level.
+
+| Tool | Required inputs | Purpose |
+|---|---|---|
+| `asc_list_subscription_groups` | `appId` | Groups + their subscriptions |
+| `asc_create_subscription_group` | `appId`, `referenceName` | Create a group (internal name) |
+| `asc_set_subscription_group_localization` | `subscriptionGroupId`, `locale` | Upsert customer-facing group name (+ optional customAppName) |
+| `asc_create_subscription` | `groupId`, `name`, `productId`, `subscriptionPeriod` | Create an auto-renewable subscription in a group |
+| `asc_get_subscription` | `subscriptionId` | Single subscription + localizations/prices/availability/offers |
+| `asc_set_subscription_localization` | `subscriptionId`, `locale` | Upsert customer-facing name (≤30) + description (≤45) |
+| `asc_list_subscription_price_points` | `subscriptionId` | Discover valid price tiers for a territory |
+| `asc_set_subscription_price` | `subscriptionId` | Base territory + `customerPrice`/`pricePointId`; auto-equalizes |
+| `asc_set_subscription_availability` | `subscriptionId` | Territory availability |
+| `asc_set_subscription_intro_offer` | `subscriptionId`, `offerMode`, `duration` | Free trial / pay-as-you-go / pay-up-front offer |
+| `asc_upload_subscription_review_screenshot` | `subscriptionId`, `filePath` | Reservation → PUT → MD5 commit |
+| `asc_submit_subscription_for_review` | `subscriptionGroupId` | Submit the whole group for review |
+
+Typical flow:
+
+```
+> Create a subscription group "Pro" for appId 12345 and set its en-US name "Pro".
+> Add a monthly auto-renewable subscription "Pro Monthly" productId com.example.app.pro.monthly, groupLevel 1.
+> Set its en-US name "Pro Monthly" and description "Everything in Pro, billed monthly."
+> Price it at $9.99 (base USA), give it a 1-month free trial, make it available everywhere.
+> Upload ~/screens/sub-review.png and submit the Pro group for review.
+```
+
+> **Validation status.** Same `[VERIFY]` caveats apply (see `src/tools/subscriptions.ts`): the `subscription`/`subscriptionGroup` relationship keys, subscription-price auto-equalization (subscriptions have no price-schedule resource — prices are created per territory), the introductory-offer territory/price-point shape, and the group-level `subscriptionGroupSubmissions` submit path.
 
 ## Troubleshooting
 
