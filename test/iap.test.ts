@@ -6,7 +6,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { randomBytes } from "node:crypto";
 import {
-  createInAppPurchaseTool, setIapLocalizationTool, setIapPriceTool, uploadIapReviewScreenshotTool,
+  listInAppPurchasesTool, getInAppPurchaseTool, createInAppPurchaseTool, setIapLocalizationTool,
+  setIapPriceTool, setIapAvailabilityTool, uploadIapReviewScreenshotTool, submitIapForReviewTool,
 } from "../src/tools/iap.ts";
 import type { AscClient } from "../src/client.ts";
 import type { AscConfig } from "../src/config.ts";
@@ -162,4 +163,91 @@ test("asc_upload_iap_review_screenshot reserves, PUTs bytes, and commits with an
     await new Promise<void>((r) => server.close(() => r()));
     await unlink(filePath);
   }
+});
+
+test("asc_list_in_app_purchases hits the app's IAP collection and flattens results", async () => {
+  const { client, calls } = fakeClient({
+    list: () => [{ id: "iap1", attributes: { name: "Pro", productId: "com.x.pro", inAppPurchaseType: "NON_CONSUMABLE", state: "APPROVED" } }],
+  });
+  const out = await listInAppPurchasesTool.handler(
+    parse(listInAppPurchasesTool, { appId: "app1", inAppPurchaseType: "NON_CONSUMABLE" }),
+    { client, config: cfg },
+  ) as Array<{ id: string; productId?: string }>;
+  assert.equal(calls.find((c) => c.method === "LIST")!.path, "/v1/apps/app1/inAppPurchasesV2");
+  assert.equal(out[0]!.id, "iap1");
+  assert.equal(out[0]!.productId, "com.x.pro");
+});
+
+test("asc_get_in_app_purchase assembles the IAP with its sub-resources", async () => {
+  const { client, calls } = fakeClient({
+    getOne: () => ({ id: "iap1", attributes: { name: "Pro", productId: "com.x.pro", state: "APPROVED" } }),
+    list: () => [{ id: "loc1", attributes: { locale: "en-US", name: "Pro" } }],
+    get: (path) => ({ data: { id: path.includes("Availability") ? "avail1" : "sched1" } }),
+  });
+  const out = await getInAppPurchaseTool.handler(parse(getInAppPurchaseTool, { inAppPurchaseId: "iap1" }), { client, config: cfg }) as any;
+  assert.equal(calls.find((c) => c.method === "GETONE")!.path, "/v2/inAppPurchases/iap1");
+  assert.equal(out.id, "iap1");
+  assert.equal(out.productId, "com.x.pro");
+  assert.equal(out.localizations[0].locale, "en-US");
+  assert.ok(out.priceSchedule);
+  assert.ok(out.availability);
+});
+
+test("asc_get_in_app_purchase degrades failing sub-resources to null/[]", async () => {
+  const { client } = fakeClient({
+    getOne: () => ({ id: "iap1", attributes: {} }),
+    list: () => { throw new Error("boom"); },
+    get: () => { throw new Error("boom"); },
+  });
+  const out = await getInAppPurchaseTool.handler(parse(getInAppPurchaseTool, { inAppPurchaseId: "iap1" }), { client, config: cfg }) as any;
+  assert.deepEqual(out.localizations, []);
+  assert.equal(out.priceSchedule, null);
+  assert.equal(out.availability, null);
+});
+
+test("asc_set_iap_availability posts explicit territories", async () => {
+  const { client, calls } = fakeClient({ post: () => ({ data: { id: "avail1" } }) });
+  await setIapAvailabilityTool.handler(parse(setIapAvailabilityTool, { inAppPurchaseId: "iap1", territories: ["USA", "GBR"] }), { client, config: cfg });
+  const body = calls.find((c) => c.method === "POST")!.body as any;
+  assert.equal(body.data.type, "inAppPurchaseAvailabilities");
+  assert.deepEqual(body.data.relationships.inAppPurchase.data, { type: "inAppPurchases", id: "iap1" });
+  assert.deepEqual(body.data.relationships.availableTerritories.data, [{ type: "territories", id: "USA" }, { type: "territories", id: "GBR" }]);
+  assert.equal(body.data.attributes.availableInNewTerritories, true);
+});
+
+test("asc_set_iap_availability expands availableInAllTerritories via /v1/territories", async () => {
+  const { client, calls } = fakeClient({
+    list: (path) => path === "/v1/territories" ? [{ id: "USA" }, { id: "GBR" }, { id: "JPN" }] : [],
+    post: () => ({ data: { id: "avail1" } }),
+  });
+  await setIapAvailabilityTool.handler(
+    parse(setIapAvailabilityTool, { inAppPurchaseId: "iap1", availableInAllTerritories: true, availableInNewTerritories: false }),
+    { client, config: cfg },
+  );
+  assert.equal(calls.find((c) => c.method === "LIST")!.path, "/v1/territories");
+  const body = calls.find((c) => c.method === "POST")!.body as any;
+  assert.equal(body.data.relationships.availableTerritories.data.length, 3);
+  assert.equal(body.data.attributes.availableInNewTerritories, false);
+});
+
+test("asc_set_iap_price accepts an explicit pricePointId and skips the lookup", async () => {
+  const { client, calls } = fakeClient({ post: () => ({ data: { id: "sched2" } }) });
+  const out = await setIapPriceTool.handler(
+    parse(setIapPriceTool, { inAppPurchaseId: "iap1", baseTerritory: "USA", pricePointId: "pp_explicit" }),
+    { client, config: cfg },
+  ) as { pricePointId: string };
+  assert.equal(out.pricePointId, "pp_explicit");
+  assert.equal(calls.some((c) => c.method === "LIST"), false, "no price-point lookup when an id is given");
+  const inc = (calls.find((c) => c.method === "POST")!.body as any).included[0];
+  assert.equal(inc.relationships.inAppPurchasePricePoint.data.id, "pp_explicit");
+});
+
+test("asc_submit_iap_for_review posts an inAppPurchaseSubmissions with the right relationship", async () => {
+  const { client, calls } = fakeClient({ post: () => ({ data: { id: "isub1", attributes: { state: "WAITING_FOR_REVIEW" } } }) });
+  const out = await submitIapForReviewTool.handler(parse(submitIapForReviewTool, { inAppPurchaseId: "iap1" }), { client, config: cfg }) as any;
+  const post = calls.find((c) => c.method === "POST")!;
+  assert.equal(post.path, "/v1/inAppPurchaseSubmissions");
+  assert.deepEqual((post.body as any).data.relationships.inAppPurchaseV2.data, { type: "inAppPurchases", id: "iap1" });
+  assert.equal(out.submissionId, "isub1");
+  assert.equal(out.state, "WAITING_FOR_REVIEW");
 });
