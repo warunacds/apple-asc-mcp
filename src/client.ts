@@ -142,6 +142,21 @@ export class AscClient {
   async list<A = Record<string, unknown>>(path: string, query?: RequestOptions["query"]) {
     return (await this.get<ListResponse<A>>(path, { query })).data;
   }
+
+  /**
+   * Authenticated GET returning raw bytes. Used for report downloads (salesReports/financeReports),
+   * which return a gzipped TSV body rather than JSON:API. Single-shot (no retry); callers gunzip.
+   */
+  async getRaw(path: string, query?: RequestOptions["query"], headers?: Record<string, string>): Promise<Buffer> {
+    const url = path.startsWith("http") ? withQuery(path, query) : withQuery(`${BASE}${path}`, query);
+    const h: Record<string, string> = { Authorization: `Bearer ${await this.minter.getToken()}`, ...(headers ?? {}) };
+    const res = await fetch(url, { method: "GET", headers: h });
+    if (!res.ok) {
+      const errs = await safeReadErrors(res);
+      throw new AscApiError(res.status, errs, url, "GET");
+    }
+    return Buffer.from(await res.arrayBuffer());
+  }
 }
 
 function withQuery(url: string, q?: RequestOptions["query"]): string {

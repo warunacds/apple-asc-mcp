@@ -52,6 +52,26 @@ import {
   listOfferCodesTool, createOfferCodeTool, createOfferCodeCustomCodesTool,
   createOfferCodeOneTimeCodesTool, listWinBackOffersTool, createWinBackOfferTool,
 } from "./offer_codes.js";
+import {
+  listWebhooksTool, createWebhookTool, updateWebhookTool, deleteWebhookTool, pingWebhookTool, listWebhookDeliveriesTool,
+} from "./webhooks.js";
+import {
+  listUsersTool, getUserTool, updateUserTool, listUserInvitationsTool, inviteUserTool, cancelUserInvitationTool,
+} from "./users.js";
+import {
+  listCiProductsTool, listCiWorkflowsTool, getCiWorkflowTool, startCiBuildTool, listCiBuildRunsTool, getCiBuildRunTool,
+} from "./xcode_cloud.js";
+import {
+  getSalesReportTool, getFinanceReportTool, requestAnalyticsReportTool, listAnalyticsReportsTool,
+} from "./reports.js";
+import {
+  getGameCenterDetailTool, listAchievementsTool, createAchievementTool, setAchievementLocalizationTool,
+  listLeaderboardsTool, createLeaderboardTool, setLeaderboardLocalizationTool,
+} from "./gamecenter.js";
+import {
+  getAltDistributionKeyTool, createAltDistributionKeyTool, listAltDistributionPackagesTool,
+  listMarketplaceDomainsTool, createMarketplaceDomainTool,
+} from "./alt_distribution.js";
 
 export const ALL_TOOLS: Tool[] = [
   // Discovery (read-only)
@@ -116,4 +136,24 @@ export const ALL_TOOLS: Tool[] = [
   // Subscription offer codes + win-back offers
   listOfferCodesTool, createOfferCodeTool, createOfferCodeCustomCodesTool,
   createOfferCodeOneTimeCodesTool, listWinBackOffersTool, createWinBackOfferTool,
+
+  // Webhooks
+  listWebhooksTool, createWebhookTool, updateWebhookTool, deleteWebhookTool, pingWebhookTool, listWebhookDeliveriesTool,
+
+  // Users & access
+  listUsersTool, getUserTool, updateUserTool, listUserInvitationsTool, inviteUserTool, cancelUserInvitationTool,
+
+  // Xcode Cloud
+  listCiProductsTool, listCiWorkflowsTool, getCiWorkflowTool, startCiBuildTool, listCiBuildRunsTool, getCiBuildRunTool,
+
+  // Reporting (sales / finance / analytics)
+  getSalesReportTool, getFinanceReportTool, requestAnalyticsReportTool, listAnalyticsReportsTool,
+
+  // Game Center
+  getGameCenterDetailTool, listAchievementsTool, createAchievementTool, setAchievementLocalizationTool,
+  listLeaderboardsTool, createLeaderboardTool, setLeaderboardLocalizationTool,
+
+  // Alternative distribution (EU DMA)
+  getAltDistributionKeyTool, createAltDistributionKeyTool, listAltDistributionPackagesTool,
+  listMarketplaceDomainsTool, createMarketplaceDomainTool,
 ];
