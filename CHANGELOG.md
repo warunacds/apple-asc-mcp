@@ -11,13 +11,14 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - **Phased release control** — `asc_set_phased_release` enables / pauses / resumes / completes the 7-day staged rollout (`appStoreVersionPhasedRelease`), idempotently.
 - **Compliance declarations** — `asc_set_content_rights` (third-party content rights on the app), plus `asc_get_age_rating` / `asc_set_age_rating` (the age-rating questionnaire; resolves the editable AppInfo + declaration, PATCHes only the fields passed, with an `additionalDeclarations` escape hatch for Apple's 2024–25 questionnaire changes).
 - **App privacy** — 6 tools for the data-collection "nutrition label": `asc_list_privacy_options` (category/purpose/data-protection ids), `asc_get_privacy_details`, `asc_add_data_usage`, `asc_remove_data_usage`, `asc_declare_no_data_collected` (shortcut), and `asc_publish_privacy`.
+- **Subscription offer codes & win-back offers** — `asc_list_offer_codes`, `asc_create_offer_code` (NEW/EXISTING/EXPIRED eligibility; FREE_TRIAL / PAY_AS_YOU_GO / PAY_UP_FRONT with inline price), `asc_create_offer_code_custom_codes` (memorable code), `asc_create_offer_code_one_time_codes` (unique-code batch), plus `asc_list_win_back_offers` / `asc_create_win_back_offer` (offers for lapsed subscribers).
 - `asc_list_territories` — territory codes for the pricing and availability tools.
 - `asc_submit_for_review` now accepts an `inAppPurchaseV2` item in `additionalItems`, so an IAP can be bundled into an app version's submission.
 - `asc_release_status` now reports an `inAppPurchases` summary (count, states, and any in `MISSING_METADATA`/`DEVELOPER_ACTION_NEEDED`).
-- 50 new handler tests (mock-server based) across the IAP, subscription, app-pricing, phased-release, compliance, and app-privacy handlers; full suite is 60 green.
+- 56 new handler tests (mock-server based) across the IAP, subscription, app-pricing, phased-release, compliance, app-privacy, and offer-code/win-back handlers; full suite is 66 green.
 
 ### Notes
-- New tools inherit the server's pre-live-validation status. Spec details inferred from sibling APIs are flagged with `[VERIFY]` in `src/tools/iap.ts`, `src/tools/subscriptions.ts`, `src/tools/pricing.ts`, `src/tools/compliance.ts`, and `src/tools/privacy.ts` (relationship key names, submission paths, price auto-equalization, the age-rating questionnaire, and the App Privacy data-usage / publish shapes). Remaining gaps: promotional offers, offer codes, and win-back offers.
+- New tools inherit the server's pre-live-validation status. Spec details inferred from sibling APIs are flagged with `[VERIFY]` in `src/tools/iap.ts`, `src/tools/subscriptions.ts`, `src/tools/pricing.ts`, `src/tools/compliance.ts`, `src/tools/privacy.ts`, and `src/tools/offer_codes.ts` (relationship key names, submission paths, price auto-equalization, the age-rating questionnaire, the App Privacy shapes, and the offer-code / win-back price shapes). Remaining gaps: promotional offers (separate branch).
 
 ## [0.1.0-alpha.1] — 2026-04-28
 

@@ -16,6 +16,10 @@ import {
   setSubscriptionIntroOfferTool, uploadSubscriptionReviewScreenshotTool, submitSubscriptionForReviewTool,
 } from "./subscriptions.js";
 import {
+  listOfferCodesTool, createOfferCodeTool, createOfferCodeCustomCodesTool,
+  createOfferCodeOneTimeCodesTool, listWinBackOffersTool, createWinBackOfferTool,
+} from "./offer_codes.js";
+import {
   createVersionTool, updateVersionTool, attachBuildTool, setVersionLocalizationTool,
   releaseToStoreTool, setPhasedReleaseTool, getEditableAppInfoTool, setAppCategoriesTool,
   setAppInfoLocalizationTool, setReviewDetailsTool,
@@ -80,4 +84,8 @@ export const ALL_TOOLS: Tool[] = [
   createSubscriptionTool, getSubscriptionTool, setSubscriptionLocalizationTool,
   listSubscriptionPricePointsTool, setSubscriptionPriceTool, setSubscriptionAvailabilityTool,
   setSubscriptionIntroOfferTool, uploadSubscriptionReviewScreenshotTool, submitSubscriptionForReviewTool,
+
+  // Subscription offer codes + win-back offers
+  listOfferCodesTool, createOfferCodeTool, createOfferCodeCustomCodesTool,
+  createOfferCodeOneTimeCodesTool, listWinBackOffersTool, createWinBackOfferTool,
 ];
