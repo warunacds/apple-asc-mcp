@@ -27,6 +27,9 @@ import {
   declareNoDataCollectedTool, publishPrivacyTool,
 } from "./privacy.js";
 import {
+  listPromotionalOffersTool, createPromotionalOfferTool, addPromotionalOfferPriceTool, deletePromotionalOfferTool,
+} from "./offers.js";
+import {
   listScreenshotSetsTool, findOrCreateScreenshotSetTool, uploadScreenshotTool,
   deleteScreenshotTool, reorderScreenshotsTool, findOrCreatePreviewSetTool, uploadPreviewTool,
 } from "./screenshots.js";
@@ -80,4 +83,7 @@ export const ALL_TOOLS: Tool[] = [
   createSubscriptionTool, getSubscriptionTool, setSubscriptionLocalizationTool,
   listSubscriptionPricePointsTool, setSubscriptionPriceTool, setSubscriptionAvailabilityTool,
   setSubscriptionIntroOfferTool, uploadSubscriptionReviewScreenshotTool, submitSubscriptionForReviewTool,
+
+  // Subscription promotional offers
+  listPromotionalOffersTool, createPromotionalOfferTool, addPromotionalOfferPriceTool, deletePromotionalOfferTool,
 ];

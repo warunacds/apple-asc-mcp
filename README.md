@@ -37,7 +37,7 @@ Claude does the work; you review the result in App Store Connect and tap **Submi
 
 ## What it does
 
-74 MCP tools split across:
+78 MCP tools split across:
 
 - **Discovery** (11) — `asc_whoami`, list/get apps, builds, versions, localizations, categories, territories, plus `asc_release_status`: a one-shot snapshot that tells Claude what's blocking submission.
 - **Build & upload** (5) — `xc_archive`, `xc_export_ipa`, `asc_validate_ipa`, `asc_upload_ipa` (defaults to the new REST `/v1/buildUploads` flow from WWDC 2025; falls back to `xcrun altool` on demand), `asc_wait_for_build_processing`.
@@ -50,6 +50,7 @@ Claude does the work; you review the result in App Store Connect and tap **Submi
 - **TestFlight** (4) — list beta groups, set "What to test", distribute, submit for beta review.
 - **In-App Purchases** (9) — create products, upsert per-locale name/description, price (base territory + auto-equalize), set availability, attach a review screenshot, submit. Consumable / Non-Consumable / Non-Renewing Subscription.
 - **Subscriptions** (12) — subscription groups + group localizations, create auto-renewable subscriptions, per-locale name/description, pricing (base + auto-equalize), availability, introductory offers (free trial / pay-as-you-go / pay-up-front), review screenshot, and group-level submission.
+- **Subscription promotional offers** (4) — create/list/delete promotional offers (discounts for existing/lapsed subscribers) and add per-territory offer prices.
 
 See the [tool reference](#tool-reference) for the full table.
 
@@ -356,6 +357,19 @@ Typical flow:
 ```
 
 > **Validation status.** Same `[VERIFY]` caveats apply (see `src/tools/subscriptions.ts`): the `subscription`/`subscriptionGroup` relationship keys, subscription-price auto-equalization (subscriptions have no price-schedule resource — prices are created per territory), the introductory-offer territory/price-point shape, and the group-level `subscriptionGroupSubmissions` submit path.
+
+### Subscription promotional offers
+
+Discounts for **existing or lapsed** subscribers (distinct from introductory offers, which target new subscribers). Each offer has a developer-defined `offerCode` (referenced by StoreKit at purchase) and a discounted price per territory.
+
+| Tool | Required inputs | Purpose |
+|---|---|---|
+| `asc_list_promotional_offers` | `subscriptionId` | Offers on a subscription |
+| `asc_create_promotional_offer` | `subscriptionId`, `name`, `offerCode`, `offerMode`, `duration` | Create an offer (FREE_TRIAL needs no price; paid modes need `customerPrice`/`pricePointId` in `baseTerritory`) |
+| `asc_add_promotional_offer_price` | `promotionalOfferId`, `subscriptionId`, `territory` | Add a discounted price for another territory |
+| `asc_delete_promotional_offer` | `promotionalOfferId` | Remove an offer |
+
+> **Validation status.** `[VERIFY]` — the `offerCode` attribute, the inline `subscriptionPromotionalOfferPrices` shape, and the standalone add-price path are inferred. If a call 400s, attach the JSON:API error body to an issue.
 
 ## Troubleshooting
 
