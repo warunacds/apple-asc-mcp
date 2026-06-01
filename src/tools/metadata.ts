@@ -126,6 +126,38 @@ export const releaseToStoreTool = tool({
   },
 });
 
+export const setPhasedReleaseTool = tool({
+  name: "asc_set_phased_release",
+  description:
+    "Control the 7-day phased release of a version. state=ACTIVE enables it (or resumes a paused rollout), PAUSED halts " +
+    "it, COMPLETE releases to 100% of users immediately. Idempotent: creates the phased release if absent, otherwise " +
+    "updates the existing one. Phased release applies to automatically-released or already-live versions.",
+  inputSchema: z.object({
+    versionId: z.string(),
+    state: z.enum(["ACTIVE", "PAUSED", "COMPLETE"]).default("ACTIVE"),
+  }).strict(),
+  handler: async (input, { client }) => {
+    const existing = await client
+      .get<{ data?: { id: string } | null }>(`/v1/appStoreVersions/${input.versionId}/appStoreVersionPhasedRelease`)
+      .catch(() => ({ data: null }));
+    if (existing && existing.data) {
+      const id = existing.data.id;
+      const res = await client.patch(`/v1/appStoreVersionPhasedReleases/${id}`, {
+        data: { type: "appStoreVersionPhasedReleases", id, attributes: { phasedReleaseState: input.state } },
+      });
+      return { action: "updated", id, state: input.state, result: res };
+    }
+    const res = await client.post<{ data: { id: string; attributes?: Record<string, unknown> } }>("/v1/appStoreVersionPhasedReleases", {
+      data: {
+        type: "appStoreVersionPhasedReleases",
+        attributes: { phasedReleaseState: input.state },
+        relationships: { appStoreVersion: { data: { type: "appStoreVersions", id: input.versionId } } },
+      },
+    });
+    return { action: "created", id: res.data.id, state: input.state, attributes: res.data.attributes };
+  },
+});
+
 // AppInfo (non-version-specific marketing data: name, subtitle, categories, privacy URL).
 
 export const getEditableAppInfoTool = tool({

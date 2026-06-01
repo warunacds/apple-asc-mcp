@@ -147,3 +147,10 @@ export interface IapPricePointAttrs {
   proceeds?: string; // your cut after Apple's commission
   // territory lives in relationships, sideload with include=territory to resolve it
 }
+
+// App pricing (v3 model). There is exactly one appPriceSchedule per app; appPricePoints are the
+// server-defined tiers you choose from (you don't enter a raw amount). A free app is just the $0 tier.
+export interface AppPricePointAttrs {
+  customerPrice?: string; // e.g. "0.99", or "0.00" for free
+  proceeds?: string; // your cut after Apple's commission
+}
