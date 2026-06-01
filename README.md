@@ -37,7 +37,7 @@ Claude does the work; you review the result in App Store Connect and tap **Submi
 
 ## What it does
 
-78 MCP tools split across:
+91 MCP tools split across:
 
 - **Discovery** (11) — `asc_whoami`, list/get apps, builds, versions, localizations, categories, territories, plus `asc_release_status`: a one-shot snapshot that tells Claude what's blocking submission.
 - **Build & upload** (5) — `xc_archive`, `xc_export_ipa`, `asc_validate_ipa`, `asc_upload_ipa` (defaults to the new REST `/v1/buildUploads` flow from WWDC 2025; falls back to `xcrun altool` on demand), `asc_wait_for_build_processing`.
@@ -51,6 +51,7 @@ Claude does the work; you review the result in App Store Connect and tap **Submi
 - **In-App Purchases** (9) — create products, upsert per-locale name/description, price (base territory + auto-equalize), set availability, attach a review screenshot, submit. Consumable / Non-Consumable / Non-Renewing Subscription.
 - **Subscriptions** (12) — subscription groups + group localizations, create auto-renewable subscriptions, per-locale name/description, pricing (base + auto-equalize), availability, introductory offers (free trial / pay-as-you-go / pay-up-front), review screenshot, and group-level submission.
 - **Subscription promotional offers** (4) — create/list/delete promotional offers (discounts for existing/lapsed subscribers) and add per-territory offer prices.
+- **Provisioning** (13) — bundle IDs + capabilities, signing certificates, test devices, and provisioning profiles (code-signing automation, same auth as the rest).
 
 See the [tool reference](#tool-reference) for the full table.
 
@@ -370,6 +371,20 @@ Discounts for **existing or lapsed** subscribers (distinct from introductory off
 | `asc_delete_promotional_offer` | `promotionalOfferId` | Remove an offer |
 
 > **Validation status.** `[VERIFY]` — the `offerCode` attribute, the inline `subscriptionPromotionalOfferPrices` shape, and the standalone add-price path are inferred. If a call 400s, attach the JSON:API error body to an issue.
+
+### Provisioning / code signing
+
+Bundle IDs, capabilities, certificates, test devices, and provisioning profiles — the developer-portal side, on the same auth as everything else.
+
+| Tool | Required inputs | Purpose |
+|---|---|---|
+| `asc_list_bundle_ids` / `asc_create_bundle_id` / `asc_delete_bundle_id` | (varies) | Register/list/delete bundle IDs (platform `IOS`/`MAC_OS`/`UNIVERSAL`) |
+| `asc_enable_bundle_capability` / `asc_disable_bundle_capability` | `bundleIdResourceId`/`capabilityId` | Toggle capabilities (push, iCloud, IAP, …) |
+| `asc_list_certificates` / `asc_create_certificate` / `asc_revoke_certificate` | (varies) | Signing certs (create from a CSR) |
+| `asc_list_devices` / `asc_register_device` | (varies) | Register test devices by UDID |
+| `asc_list_profiles` / `asc_create_profile` / `asc_delete_profile` | (varies) | Provisioning profiles (bundleId + certs + devices) |
+
+> **Validation status.** `[VERIFY]` — endpoints follow `research/api-reference.md` §14, but the `CapabilityType`/`CertificateType`/`ProfileType` enum spellings drift over time, so those inputs are free strings (common values documented in each tool). If a call 400s, attach the JSON:API error body to an issue.
 
 ## Troubleshooting
 
