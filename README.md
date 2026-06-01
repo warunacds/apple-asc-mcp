@@ -37,14 +37,15 @@ Claude does the work; you review the result in App Store Connect and tap **Submi
 
 ## What it does
 
-39 MCP tools split across:
+49 MCP tools split across:
 
-- **Discovery** (10) — `asc_whoami`, list/get apps, builds, versions, localizations, categories, plus `asc_release_status`: a one-shot snapshot that tells Claude what's blocking submission.
+- **Discovery** (11) — `asc_whoami`, list/get apps, builds, versions, localizations, categories, territories, plus `asc_release_status`: a one-shot snapshot that tells Claude what's blocking submission.
 - **Build & upload** (5) — `xc_archive`, `xc_export_ipa`, `asc_validate_ipa`, `asc_upload_ipa` (defaults to the new REST `/v1/buildUploads` flow from WWDC 2025; falls back to `xcrun altool` on demand), `asc_wait_for_build_processing`.
 - **Versioning & metadata** (9) — create/update versions, attach builds, upsert per-locale description/keywords/promo text/what's new, set categories, set App Review demo credentials.
 - **Screenshots & previews** (7) — idempotent set-find-or-create, full reservation → multipart PUT → MD5 commit. Same code path covers iPhone/iPad/Watch/TV/Vision Pro/Mac and iMessage variants.
 - **Review submission** (4) — modern `reviewSubmissions` flow.
 - **TestFlight** (4) — list beta groups, set "What to test", distribute, submit for beta review.
+- **In-App Purchases** (9) — create products, upsert per-locale name/description, price (base territory + auto-equalize), set availability, attach a review screenshot, submit. Consumable / Non-Consumable / Non-Renewing Subscription. (Auto-renewable subscriptions and offers are the next phase.)
 
 See the [tool reference](#tool-reference) for the full table.
 
@@ -195,6 +196,7 @@ See [`examples/release.example.json`](examples/release.example.json) for a sampl
 | `asc_get_version` | `versionId` | Single version + build + localizations + review detail |
 | `asc_list_version_localizations` | `versionId` | Per-locale marketing copy under a version |
 | `asc_list_categories` | — | Discover category ids for `asc_set_app_categories` |
+| `asc_list_territories` | — | Territory codes (USA, GBR, …) for the pricing/availability tools |
 | **`asc_release_status`** | `appId` or `bundleId` | **One-shot "what's blocking submission" snapshot** |
 
 ### Build, validate, upload (macOS for the first three)
@@ -250,6 +252,35 @@ See [`examples/release.example.json`](examples/release.example.json) for a sampl
 | `asc_set_beta_whats_new` | `buildId`, `locale`, `whatsNew` | Per-locale "What to Test" |
 | `asc_distribute_to_beta_groups` | `buildId`, `groupIds[]` | Push a build to one or more groups |
 | `asc_submit_for_beta_review` | `buildId` | Required before external distribution |
+
+### In-App Purchases
+
+Covers Consumable, Non-Consumable, and Non-Renewing Subscription products. Auto-renewable subscriptions and offers are deliberately a later phase.
+
+| Tool | Required inputs | Purpose |
+|---|---|---|
+| `asc_list_in_app_purchases` | `appId` | List IAPs; filter by `inAppPurchaseType`/`state` |
+| `asc_get_in_app_purchase` | `inAppPurchaseId` | Single IAP + localizations + price schedule + availability |
+| `asc_create_in_app_purchase` | `appId`, `name`, `productId`, `inAppPurchaseType` | Create the product (productId is immutable) |
+| `asc_set_iap_localization` | `inAppPurchaseId`, `locale` | Upsert customer-facing name (≤30) + description (≤45) |
+| `asc_list_iap_price_points` | `inAppPurchaseId` | Discover valid price tiers for a territory |
+| `asc_set_iap_price` | `inAppPurchaseId` | Base territory + `customerPrice`/`pricePointId`; other territories auto-equalize |
+| `asc_set_iap_availability` | `inAppPurchaseId` | Territory availability (codes or `availableInAllTerritories`) |
+| `asc_upload_iap_review_screenshot` | `inAppPurchaseId`, `filePath` | Reservation → PUT → MD5 commit (App Review screenshot) |
+| `asc_submit_iap_for_review` | `inAppPurchaseId` | Standalone IAP submission (or bundle via `asc_submit_for_review`) |
+
+Typical flow:
+
+```
+> Create a non-consumable IAP "Pro Upgrade" productId com.example.app.pro for appId 12345.
+> Set its en-US name "Pro Upgrade" and description "Unlock every feature, forever."
+> Price it at $4.99 (base territory USA) — other territories auto-equalize.
+> Make it available in all territories, upload ~/screens/iap-review.png as the review screenshot, and submit it for review.
+```
+
+> **Pricing model.** Apple uses fixed, server-defined price points per territory — you pick a tier, you don't type an amount. `asc_set_iap_price` resolves a `customerPrice` like `"4.99"` to the matching point in the base territory; pass an explicit `pricePointId` (from `asc_list_iap_price_points`) for precision. Territories you don't list are auto-derived from the base.
+
+> **Validation status.** Like the rest of the server, the IAP tools have not been exercised against live Apple traffic. Four spec details are marked `[VERIFY]` in `src/tools/iap.ts` (the `inAppPurchaseV2` vs `inAppPurchase` relationship keys, the standalone `inAppPurchaseSubmissions` submit path, and price-schedule auto-equalization). If one 400s, attach the JSON:API error body to an issue.
 
 ## Troubleshooting
 

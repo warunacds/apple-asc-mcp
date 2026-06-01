@@ -19,12 +19,13 @@ export const submitForReviewTool = tool({
     platform: z.enum(["IOS", "MAC_OS", "TV_OS", "VISION_OS"]).default("IOS"),
     additionalItems: z.array(z.object({
       type: z.enum([
+        "inAppPurchaseV2",
         "appCustomProductPageVersion","appStoreVersionExperimentV2","appStoreVersionExperiment",
         "appEvent","backgroundAssetVersion","gameCenterAchievementVersion","gameCenterActivityVersion",
         "gameCenterChallengeVersion","gameCenterLeaderboardSetVersion","gameCenterLeaderboardVersion",
       ]),
       id: z.string(),
-    })).optional().describe("Additional reviewable resources to bundle into the same submission."),
+    })).optional().describe("Additional reviewable resources to bundle into the same submission (e.g. an in-app purchase: {type:\"inAppPurchaseV2\", id}). Alternatively submit an IAP on its own with asc_submit_iap_for_review."),
   }).strict(),
   handler: async (input, { client }) => {
     const draft = await client.post<{ data: { id: string } }>("/v1/reviewSubmissions", {
@@ -36,9 +37,12 @@ export const submitForReviewTool = tool({
     });
     const submissionId = draft.data.id;
 
+    // A reviewSubmissionItem's relationship name is singular (e.g. inAppPurchaseV2) but the JSON:API
+    // resource type it points at differs where the names don't coincide. Map the known exceptions.
+    const REL_RESOURCE_TYPE: Record<string, string> = { inAppPurchaseV2: "inAppPurchases" };
     const items: { type: string; id: string; relName: string }[] = [
       { type: "appStoreVersions", id: input.versionId, relName: "appStoreVersion" },
-      ...(input.additionalItems ?? []).map((it) => ({ type: it.type, id: it.id, relName: it.type })),
+      ...(input.additionalItems ?? []).map((it) => ({ type: REL_RESOURCE_TYPE[it.type] ?? it.type, id: it.id, relName: it.type })),
     ];
     const itemIds: string[] = [];
     for (const it of items) {

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { tool } from "./registry.js";
-import type { AppAttrs, AppStoreVersionAttrs, BuildAttrs, ScreenshotAttrs, VersionLocAttrs } from "../types.js";
+import type { AppAttrs, AppStoreVersionAttrs, BuildAttrs, InAppPurchaseAttrs, ScreenshotAttrs, VersionLocAttrs } from "../types.js";
 
 /**
  * Single tool that returns "the state of the world" for an app — the editable version, the
@@ -137,6 +137,21 @@ export const releaseStatusTool = tool({
       "fields[reviewSubmissions]": "platform,submittedDate,state",
     }).catch(() => []);
 
+    // In-app purchases — informational readiness signal (an unfinished IAP doesn't block the app
+    // version itself, but the agent should see which ones still need work). Best-effort.
+    const iaps = await client.list<InAppPurchaseAttrs>(`/v1/apps/${appId}/inAppPurchasesV2`, {
+      limit: 200,
+      "fields[inAppPurchases]": "name,productId,inAppPurchaseType,state",
+    }).catch(() => []);
+    const iapByState: Record<string, number> = {};
+    for (const i of iaps) {
+      const s = i.attributes?.state ?? "UNKNOWN";
+      iapByState[s] = (iapByState[s] ?? 0) + 1;
+    }
+    const iapNeedingAction = iaps
+      .filter((i) => ["MISSING_METADATA", "DEVELOPER_ACTION_NEEDED"].includes(i.attributes?.state ?? ""))
+      .map((i) => ({ id: i.id, productId: i.attributes?.productId, state: i.attributes?.state }));
+
     // Blocker checklist
     const blockers: string[] = [];
     if (!editable) blockers.push(`No editable App Store Version for platform=${input.platform}. Use asc_create_version.`);
@@ -166,6 +181,7 @@ export const releaseStatusTool = tool({
       localizations,
       reviewDetail,
       recentReviewSubmissions: submissions.map((s) => ({ id: s.id, ...s.attributes })),
+      inAppPurchases: { count: iaps.length, byState: iapByState, needingAction: iapNeedingAction },
       blockers,
       readyToSubmit: blockers.length === 0,
     };

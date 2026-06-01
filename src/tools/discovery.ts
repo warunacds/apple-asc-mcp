@@ -175,3 +175,17 @@ export const listCategoriesTool = tool({
     return cats.map((c) => ({ id: c.id, name: c.id, platforms: c.attributes?.platforms }));
   },
 });
+
+export const listTerritoriesTool = tool({
+  name: "asc_list_territories",
+  description:
+    "List App Store territories (≈175). The territory id IS the code (e.g. USA, GBR, JPN, DEU). " +
+    "Use these codes with the pricing and availability tools (asc_set_iap_price, asc_set_iap_availability).",
+  inputSchema: z.object({
+    limit: z.number().int().min(1).max(200).default(200).optional(),
+  }).strict(),
+  handler: async (input, { client }) => {
+    const territories = await client.list<{ currency?: string }>("/v1/territories", { limit: input.limit ?? 200 });
+    return territories.map((t) => ({ id: t.id, currency: t.attributes?.currency }));
+  },
+});
