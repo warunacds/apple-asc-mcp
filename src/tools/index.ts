@@ -10,6 +10,12 @@ import {
   submitIapForReviewTool,
 } from "./iap.js";
 import {
+  listSubscriptionGroupsTool, createSubscriptionGroupTool, setSubscriptionGroupLocalizationTool,
+  createSubscriptionTool, getSubscriptionTool, setSubscriptionLocalizationTool,
+  listSubscriptionPricePointsTool, setSubscriptionPriceTool, setSubscriptionAvailabilityTool,
+  setSubscriptionIntroOfferTool, uploadSubscriptionReviewScreenshotTool, submitSubscriptionForReviewTool,
+} from "./subscriptions.js";
+import {
   createVersionTool, updateVersionTool, attachBuildTool, setVersionLocalizationTool,
   releaseToStoreTool, setPhasedReleaseTool, getEditableAppInfoTool, setAppCategoriesTool,
   setAppInfoLocalizationTool, setReviewDetailsTool,
@@ -56,4 +62,10 @@ export const ALL_TOOLS: Tool[] = [
   listInAppPurchasesTool, getInAppPurchaseTool, createInAppPurchaseTool, setIapLocalizationTool,
   listIapPricePointsTool, setIapPriceTool, setIapAvailabilityTool, uploadIapReviewScreenshotTool,
   submitIapForReviewTool,
+
+  // Auto-renewable subscriptions
+  listSubscriptionGroupsTool, createSubscriptionGroupTool, setSubscriptionGroupLocalizationTool,
+  createSubscriptionTool, getSubscriptionTool, setSubscriptionLocalizationTool,
+  listSubscriptionPricePointsTool, setSubscriptionPriceTool, setSubscriptionAvailabilityTool,
+  setSubscriptionIntroOfferTool, uploadSubscriptionReviewScreenshotTool, submitSubscriptionForReviewTool,
 ];
