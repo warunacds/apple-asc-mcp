@@ -37,12 +37,13 @@ Claude does the work; you review the result in App Store Connect and tap **Submi
 
 ## What it does
 
-65 MCP tools split across:
+68 MCP tools split across:
 
 - **Discovery** (11) — `asc_whoami`, list/get apps, builds, versions, localizations, categories, territories, plus `asc_release_status`: a one-shot snapshot that tells Claude what's blocking submission.
 - **Build & upload** (5) — `xc_archive`, `xc_export_ipa`, `asc_validate_ipa`, `asc_upload_ipa` (defaults to the new REST `/v1/buildUploads` flow from WWDC 2025; falls back to `xcrun altool` on demand), `asc_wait_for_build_processing`.
 - **Versioning & metadata** (10) — create/update versions, attach builds, upsert per-locale description/keywords/promo text/what's new, set categories, set App Review demo credentials, and control the 7-day phased release (`asc_set_phased_release`).
 - **App pricing** (3) — list price points, read the price schedule, set the app's price (free or paid; base territory + auto-equalize).
+- **Compliance declarations** (3) — set the content-rights declaration, read/set the age-rating questionnaire.
 - **Screenshots & previews** (7) — idempotent set-find-or-create, full reservation → multipart PUT → MD5 commit. Same code path covers iPhone/iPad/Watch/TV/Vision Pro/Mac and iMessage variants.
 - **Review submission** (4) — modern `reviewSubmissions` flow.
 - **TestFlight** (4) — list beta groups, set "What to test", distribute, submit for beta review.
@@ -237,6 +238,18 @@ The app's *own* price (free or paid), distinct from in-app-purchase pricing. App
 | `asc_set_app_price` | `appId` | Set price (`free`, `customerPrice`, or `pricePointId`); auto-equalizes |
 
 > **Validation status.** Like the rest of the server, these are not yet exercised against live Apple traffic; the price-schedule shape is inferred from `research/api-reference.md` §12. If a call 400s, attach the JSON:API error body to an issue.
+
+### Compliance declarations
+
+Submission gates beyond metadata. (App-privacy "nutrition label" data usages are a larger surface, not covered yet.)
+
+| Tool | Required inputs | Purpose |
+|---|---|---|
+| `asc_set_content_rights` | `appId`, `usesThirdPartyContent` | Declare third-party content rights on the app |
+| `asc_get_age_rating` | `appId` | Read the age-rating questionnaire |
+| `asc_set_age_rating` | `appId` | Set questionnaire answers (resolves the editable AppInfo + declaration) |
+
+> **Validation status.** `[VERIFY]` — and note Apple overhauled the age-rating questionnaire in 2024–25 (new bands/questions). `asc_set_age_rating` PATCHes only the fields you pass and takes an `additionalDeclarations` escape hatch for questions not in the typed list.
 
 ### Screenshots & previews
 
