@@ -21,6 +21,7 @@ import {
   setAppInfoLocalizationTool, setReviewDetailsTool,
 } from "./metadata.js";
 import { listAppPricePointsTool, getAppPriceScheduleTool, setAppPriceTool } from "./pricing.js";
+import { setContentRightsTool, getAgeRatingTool, setAgeRatingTool } from "./compliance.js";
 import {
   listScreenshotSetsTool, findOrCreateScreenshotSetTool, uploadScreenshotTool,
   deleteScreenshotTool, reorderScreenshotsTool, findOrCreatePreviewSetTool, uploadPreviewTool,
@@ -47,6 +48,9 @@ export const ALL_TOOLS: Tool[] = [
 
   // App pricing
   listAppPricePointsTool, getAppPriceScheduleTool, setAppPriceTool,
+
+  // Compliance declarations (content rights, age rating)
+  setContentRightsTool, getAgeRatingTool, setAgeRatingTool,
 
   // Screenshots & previews
   listScreenshotSetsTool, findOrCreateScreenshotSetTool, uploadScreenshotTool,
