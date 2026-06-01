@@ -10,13 +10,14 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - **App pricing** — `asc_list_app_price_points`, `asc_get_app_price_schedule`, and `asc_set_app_price` (free or paid; base territory + auto-equalize, or an explicit price point). The app's own price, distinct from in-app-purchase pricing.
 - **Phased release control** — `asc_set_phased_release` enables / pauses / resumes / completes the 7-day staged rollout (`appStoreVersionPhasedRelease`), idempotently.
 - **Compliance declarations** — `asc_set_content_rights` (third-party content rights on the app), plus `asc_get_age_rating` / `asc_set_age_rating` (the age-rating questionnaire; resolves the editable AppInfo + declaration, PATCHes only the fields passed, with an `additionalDeclarations` escape hatch for Apple's 2024–25 questionnaire changes).
+- **App privacy** — 6 tools for the data-collection "nutrition label": `asc_list_privacy_options` (category/purpose/data-protection ids), `asc_get_privacy_details`, `asc_add_data_usage`, `asc_remove_data_usage`, `asc_declare_no_data_collected` (shortcut), and `asc_publish_privacy`.
 - `asc_list_territories` — territory codes for the pricing and availability tools.
 - `asc_submit_for_review` now accepts an `inAppPurchaseV2` item in `additionalItems`, so an IAP can be bundled into an app version's submission.
 - `asc_release_status` now reports an `inAppPurchases` summary (count, states, and any in `MISSING_METADATA`/`DEVELOPER_ACTION_NEEDED`).
-- 43 new handler tests (mock-server based) across the IAP, subscription, app-pricing, phased-release, and compliance handlers; full suite is 53 green.
+- 50 new handler tests (mock-server based) across the IAP, subscription, app-pricing, phased-release, compliance, and app-privacy handlers; full suite is 60 green.
 
 ### Notes
-- New tools inherit the server's pre-live-validation status. Spec details inferred from sibling APIs are flagged with `[VERIFY]` in `src/tools/iap.ts`, `src/tools/subscriptions.ts`, `src/tools/pricing.ts`, and `src/tools/compliance.ts` (relationship key names, submission paths, price auto-equalization, and the age-rating questionnaire — which Apple overhauled in 2024–25). Remaining gaps: app-privacy "nutrition label" data usages, plus promotional offers, offer codes, and win-back offers.
+- New tools inherit the server's pre-live-validation status. Spec details inferred from sibling APIs are flagged with `[VERIFY]` in `src/tools/iap.ts`, `src/tools/subscriptions.ts`, `src/tools/pricing.ts`, `src/tools/compliance.ts`, and `src/tools/privacy.ts` (relationship key names, submission paths, price auto-equalization, the age-rating questionnaire, and the App Privacy data-usage / publish shapes). Remaining gaps: promotional offers, offer codes, and win-back offers.
 
 ## [0.1.0-alpha.1] — 2026-04-28
 
