@@ -191,3 +191,9 @@ export interface SubscriptionPricePointAttrs {
   proceeds?: string;
   proceedsForYear1?: string;
 }
+
+// App Privacy "nutrition label". The data-usage declarations are relationship-driven (category ×
+// purpose × dataProtection), so their attributes stay loose; the publish state has a simple flag.
+export interface AppDataUsagePublishStateAttrs {
+  published?: boolean;
+}
