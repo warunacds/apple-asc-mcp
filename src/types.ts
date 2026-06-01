@@ -197,3 +197,12 @@ export interface SubscriptionPricePointAttrs {
 export interface AppDataUsagePublishStateAttrs {
   published?: boolean;
 }
+
+// Subscription promotional offers (discounts for existing/lapsed subscribers).
+export interface SubscriptionPromotionalOfferAttrs {
+  name?: string; // reference name
+  offerCode?: string; // developer-defined id referenced by StoreKit
+  duration?: "THREE_DAYS" | "ONE_WEEK" | "TWO_WEEKS" | "ONE_MONTH" | "TWO_MONTHS" | "THREE_MONTHS" | "SIX_MONTHS" | "ONE_YEAR";
+  offerMode?: "FREE_TRIAL" | "PAY_AS_YOU_GO" | "PAY_UP_FRONT";
+  numberOfPeriods?: number;
+}
