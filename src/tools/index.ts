@@ -35,6 +35,11 @@ import { xcArchiveTool, xcExportTool } from "./xcode_tools.js";
 import { submitForReviewTool, getReviewSubmissionTool, listReviewSubmissionsTool, cancelReviewSubmissionTool } from "./reviews.js";
 import { listBetaGroupsTool, setBetaWhatsNewTool, distributeToBetaGroupsTool, submitForBetaReviewTool } from "./testflight.js";
 import { releaseStatusTool } from "./status.js";
+import {
+  listBundleIdsTool, createBundleIdTool, deleteBundleIdTool, enableBundleCapabilityTool,
+  disableBundleCapabilityTool, listCertificatesTool, createCertificateTool, revokeCertificateTool,
+  listDevicesTool, registerDeviceTool, listProfilesTool, createProfileTool, deleteProfileTool,
+} from "./provisioning.js";
 
 export const ALL_TOOLS: Tool[] = [
   // Discovery (read-only)
@@ -80,4 +85,9 @@ export const ALL_TOOLS: Tool[] = [
   createSubscriptionTool, getSubscriptionTool, setSubscriptionLocalizationTool,
   listSubscriptionPricePointsTool, setSubscriptionPriceTool, setSubscriptionAvailabilityTool,
   setSubscriptionIntroOfferTool, uploadSubscriptionReviewScreenshotTool, submitSubscriptionForReviewTool,
+
+  // Provisioning / code signing
+  listBundleIdsTool, createBundleIdTool, deleteBundleIdTool, enableBundleCapabilityTool,
+  disableBundleCapabilityTool, listCertificatesTool, createCertificateTool, revokeCertificateTool,
+  listDevicesTool, registerDeviceTool, listProfilesTool, createProfileTool, deleteProfileTool,
 ];
