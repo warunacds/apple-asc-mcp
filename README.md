@@ -37,7 +37,7 @@ Claude does the work; you review the result in App Store Connect and tap **Submi
 
 ## What it does
 
-74 MCP tools split across:
+78 MCP tools split across:
 
 - **Discovery** (11) — `asc_whoami`, list/get apps, builds, versions, localizations, categories, territories, plus `asc_release_status`: a one-shot snapshot that tells Claude what's blocking submission.
 - **Build & upload** (5) — `xc_archive`, `xc_export_ipa`, `asc_validate_ipa`, `asc_upload_ipa` (defaults to the new REST `/v1/buildUploads` flow from WWDC 2025; falls back to `xcrun altool` on demand), `asc_wait_for_build_processing`.
@@ -47,6 +47,7 @@ Claude does the work; you review the result in App Store Connect and tap **Submi
 - **App privacy** (6) — the data-collection "nutrition label": list the category/purpose/protection options, read current declarations, add/remove data usages, declare "no data collected", and publish.
 - **Screenshots & previews** (7) — idempotent set-find-or-create, full reservation → multipart PUT → MD5 commit. Same code path covers iPhone/iPad/Watch/TV/Vision Pro/Mac and iMessage variants.
 - **Review submission** (4) — modern `reviewSubmissions` flow.
+- **Customer reviews** (4) — list/read App Store reviews and post/edit/delete the developer response.
 - **TestFlight** (4) — list beta groups, set "What to test", distribute, submit for beta review.
 - **In-App Purchases** (9) — create products, upsert per-locale name/description, price (base territory + auto-equalize), set availability, attach a review screenshot, submit. Consumable / Non-Consumable / Non-Renewing Subscription.
 - **Subscriptions** (12) — subscription groups + group localizations, create auto-renewable subscriptions, per-locale name/description, pricing (base + auto-equalize), availability, introductory offers (free trial / pay-as-you-go / pay-up-front), review screenshot, and group-level submission.
@@ -287,6 +288,19 @@ The data-collection "nutrition label" every app must publish before submission. 
 | `asc_get_review_submission` | `submissionId` | State + items |
 | `asc_list_review_submissions` | `appId` | Recent submissions |
 | `asc_cancel_review_submission` | `submissionId` | Pull back if not yet picked up |
+
+### Customer reviews
+
+Read App Store customer reviews and manage the developer response. (Distinct from the review-*submission* flow above.) Reading needs no special role; posting responses may need a higher one.
+
+| Tool | Required inputs | Purpose |
+|---|---|---|
+| `asc_list_customer_reviews` | `appId` | List reviews (filter territory/rating, sort by date/rating) |
+| `asc_get_customer_review` | `reviewId` | A single review + its response |
+| `asc_respond_to_review` | `reviewId`, `responseBody` | Upsert the developer response |
+| `asc_delete_review_response` | `responseId` | Remove a response |
+
+> **Validation status.** `[VERIFY]` — the response relationship path (`/v1/customerReviews/{id}/response`) is inferred. If a call 400s, attach the JSON:API error body to an issue.
 
 ### TestFlight
 

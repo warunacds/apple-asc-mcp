@@ -33,6 +33,7 @@ import {
 import { uploadIpaTool, validateIpaTool, waitForBuildTool } from "./upload.js";
 import { xcArchiveTool, xcExportTool } from "./xcode_tools.js";
 import { submitForReviewTool, getReviewSubmissionTool, listReviewSubmissionsTool, cancelReviewSubmissionTool } from "./reviews.js";
+import { listCustomerReviewsTool, getCustomerReviewTool, respondToReviewTool, deleteReviewResponseTool } from "./reviews_customer.js";
 import { listBetaGroupsTool, setBetaWhatsNewTool, distributeToBetaGroupsTool, submitForBetaReviewTool } from "./testflight.js";
 import { releaseStatusTool } from "./status.js";
 
@@ -66,6 +67,9 @@ export const ALL_TOOLS: Tool[] = [
 
   // Review submission (the modern reviewSubmissions API)
   submitForReviewTool, getReviewSubmissionTool, listReviewSubmissionsTool, cancelReviewSubmissionTool,
+
+  // Customer reviews + developer responses
+  listCustomerReviewsTool, getCustomerReviewTool, respondToReviewTool, deleteReviewResponseTool,
 
   // TestFlight
   listBetaGroupsTool, setBetaWhatsNewTool, distributeToBetaGroupsTool, submitForBetaReviewTool,
