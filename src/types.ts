@@ -154,3 +154,40 @@ export interface AppPricePointAttrs {
   customerPrice?: string; // e.g. "0.99", or "0.00" for free
   proceeds?: string; // your cut after Apple's commission
 }
+
+// Auto-renewable subscriptions. A subscription belongs to a subscriptionGroup; customers can hold
+// only one active subscription per group, and groupLevel ranks upgrade/downgrade tiers within it.
+
+export interface SubscriptionGroupAttrs {
+  referenceName?: string; // internal name for the group
+}
+
+export interface SubscriptionGroupLocAttrs {
+  locale?: string;
+  name?: string; // customer-facing group display name
+  customAppName?: string; // optional app name override shown in the subscription UI
+  state?: string;
+}
+
+export interface SubscriptionAttrs {
+  name?: string; // reference name (internal)
+  productId?: string; // StoreKit product identifier
+  subscriptionPeriod?: "ONE_WEEK" | "ONE_MONTH" | "TWO_MONTHS" | "THREE_MONTHS" | "SIX_MONTHS" | "ONE_YEAR";
+  state?: string; // e.g. MISSING_METADATA, READY_TO_SUBMIT, WAITING_FOR_REVIEW, APPROVED
+  familySharable?: boolean;
+  reviewNote?: string;
+  groupLevel?: number; // rank within the group (1 = highest tier)
+}
+
+export interface SubscriptionLocAttrs {
+  locale?: string;
+  name?: string; // customer-facing display name (≤30)
+  description?: string; // customer-facing description (≤45)
+  state?: string;
+}
+
+export interface SubscriptionPricePointAttrs {
+  customerPrice?: string;
+  proceeds?: string;
+  proceedsForYear1?: string;
+}

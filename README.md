@@ -37,7 +37,7 @@ Claude does the work; you review the result in App Store Connect and tap **Submi
 
 ## What it does
 
-53 MCP tools split across:
+65 MCP tools split across:
 
 - **Discovery** (11) — `asc_whoami`, list/get apps, builds, versions, localizations, categories, territories, plus `asc_release_status`: a one-shot snapshot that tells Claude what's blocking submission.
 - **Build & upload** (5) — `xc_archive`, `xc_export_ipa`, `asc_validate_ipa`, `asc_upload_ipa` (defaults to the new REST `/v1/buildUploads` flow from WWDC 2025; falls back to `xcrun altool` on demand), `asc_wait_for_build_processing`.
