@@ -43,6 +43,15 @@ import {
   disableBundleCapabilityTool, listCertificatesTool, createCertificateTool, revokeCertificateTool,
   listDevicesTool, registerDeviceTool, listProfilesTool, createProfileTool, deleteProfileTool,
 } from "./provisioning.js";
+import {
+  getAppAvailabilityTool, setAppAvailabilityTool, listEncryptionDeclarationsTool,
+  createEncryptionDeclarationTool, assignEncryptionDeclarationTool,
+} from "./submission.js";
+import { listCustomerReviewsTool, getCustomerReviewTool, respondToReviewTool, deleteReviewResponseTool } from "./reviews_customer.js";
+import {
+  listOfferCodesTool, createOfferCodeTool, createOfferCodeCustomCodesTool,
+  createOfferCodeOneTimeCodesTool, listWinBackOffersTool, createWinBackOfferTool,
+} from "./offer_codes.js";
 
 export const ALL_TOOLS: Tool[] = [
   // Discovery (read-only)
@@ -96,4 +105,15 @@ export const ALL_TOOLS: Tool[] = [
   listBundleIdsTool, createBundleIdTool, deleteBundleIdTool, enableBundleCapabilityTool,
   disableBundleCapabilityTool, listCertificatesTool, createCertificateTool, revokeCertificateTool,
   listDevicesTool, registerDeviceTool, listProfilesTool, createProfileTool, deleteProfileTool,
+
+  // Submission gates (app availability, export compliance)
+  getAppAvailabilityTool, setAppAvailabilityTool, listEncryptionDeclarationsTool,
+  createEncryptionDeclarationTool, assignEncryptionDeclarationTool,
+
+  // Customer reviews + developer responses
+  listCustomerReviewsTool, getCustomerReviewTool, respondToReviewTool, deleteReviewResponseTool,
+
+  // Subscription offer codes + win-back offers
+  listOfferCodesTool, createOfferCodeTool, createOfferCodeCustomCodesTool,
+  createOfferCodeOneTimeCodesTool, listWinBackOffersTool, createWinBackOfferTool,
 ];

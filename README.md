@@ -37,7 +37,7 @@ Claude does the work; you review the result in App Store Connect and tap **Submi
 
 ## What it does
 
-91 MCP tools split across:
+106 MCP tools split across:
 
 - **Discovery** (11) — `asc_whoami`, list/get apps, builds, versions, localizations, categories, territories, plus `asc_release_status`: a one-shot snapshot that tells Claude what's blocking submission.
 - **Build & upload** (5) — `xc_archive`, `xc_export_ipa`, `asc_validate_ipa`, `asc_upload_ipa` (defaults to the new REST `/v1/buildUploads` flow from WWDC 2025; falls back to `xcrun altool` on demand), `asc_wait_for_build_processing`.
@@ -45,12 +45,15 @@ Claude does the work; you review the result in App Store Connect and tap **Submi
 - **App pricing** (3) — list price points, read the price schedule, set the app's price (free or paid; base territory + auto-equalize).
 - **Compliance declarations** (3) — set the content-rights declaration, read/set the age-rating questionnaire.
 - **App privacy** (6) — the data-collection "nutrition label": list the category/purpose/protection options, read current declarations, add/remove data usages, declare "no data collected", and publish.
+- **Submission gates** (5) — set app territory availability (where it's sold) and manage export-compliance encryption declarations (list/create/assign-to-build).
 - **Screenshots & previews** (7) — idempotent set-find-or-create, full reservation → multipart PUT → MD5 commit. Same code path covers iPhone/iPad/Watch/TV/Vision Pro/Mac and iMessage variants.
 - **Review submission** (4) — modern `reviewSubmissions` flow.
+- **Customer reviews** (4) — list/read App Store reviews and post/edit/delete the developer response.
 - **TestFlight** (4) — list beta groups, set "What to test", distribute, submit for beta review.
 - **In-App Purchases** (9) — create products, upsert per-locale name/description, price (base territory + auto-equalize), set availability, attach a review screenshot, submit. Consumable / Non-Consumable / Non-Renewing Subscription.
 - **Subscriptions** (12) — subscription groups + group localizations, create auto-renewable subscriptions, per-locale name/description, pricing (base + auto-equalize), availability, introductory offers (free trial / pay-as-you-go / pay-up-front), review screenshot, and group-level submission.
 - **Subscription promotional offers** (4) — create/list/delete promotional offers (discounts for existing/lapsed subscribers) and add per-territory offer prices.
+- **Subscription offer codes & win-back** (6) — offer codes (NEW/EXISTING/EXPIRED eligibility) with custom or one-time-use redeemable codes, and win-back offers for lapsed subscribers.
 - **Provisioning** (13) — bundle IDs + capabilities, signing certificates, test devices, and provisioning profiles (code-signing automation, same auth as the rest).
 
 See the [tool reference](#tool-reference) for the full table.
@@ -269,6 +272,20 @@ The data-collection "nutrition label" every app must publish before submission. 
 
 > **Validation status.** `[VERIFY]` — the research notes don't cover App Privacy, so the `appDataUsages` relationship shape and the publish-state PATCH are inferred. If a call 400s, attach the JSON:API error body to an issue.
 
+### Submission gates
+
+Final blockers beyond version metadata: where the app is sold, and export compliance.
+
+| Tool | Required inputs | Purpose |
+|---|---|---|
+| `asc_get_app_availability` | `appId` | Territories the app is available in |
+| `asc_set_app_availability` | `appId` | Set territories (or `availableInAllTerritories`) + auto-add-new flag |
+| `asc_list_encryption_declarations` | `appId` | Existing export-compliance declarations |
+| `asc_create_encryption_declaration` | `appId`, `usesEncryption` | Declare encryption usage (exempt/HTTPS-only is the common case) |
+| `asc_assign_encryption_declaration` | `buildId`, `declarationId` | Attach a declaration to a build |
+
+> **Validation status.** `[VERIFY]` — the `appAvailabilityV2`/`appAvailabilities` endpoints and the encryption-declaration attributes are inferred. If a call 400s, attach the JSON:API error body to an issue.
+
 ### Screenshots & previews
 
 | Tool | Required inputs | Purpose |
@@ -289,6 +306,19 @@ The data-collection "nutrition label" every app must publish before submission. 
 | `asc_get_review_submission` | `submissionId` | State + items |
 | `asc_list_review_submissions` | `appId` | Recent submissions |
 | `asc_cancel_review_submission` | `submissionId` | Pull back if not yet picked up |
+
+### Customer reviews
+
+Read App Store customer reviews and manage the developer response. (Distinct from the review-*submission* flow above.) Reading needs no special role; posting responses may need a higher one.
+
+| Tool | Required inputs | Purpose |
+|---|---|---|
+| `asc_list_customer_reviews` | `appId` | List reviews (filter territory/rating, sort by date/rating) |
+| `asc_get_customer_review` | `reviewId` | A single review + its response |
+| `asc_respond_to_review` | `reviewId`, `responseBody` | Upsert the developer response |
+| `asc_delete_review_response` | `responseId` | Remove a response |
+
+> **Validation status.** `[VERIFY]` — the response relationship path (`/v1/customerReviews/{id}/response`) is inferred. If a call 400s, attach the JSON:API error body to an issue.
 
 ### TestFlight
 
@@ -371,6 +401,21 @@ Discounts for **existing or lapsed** subscribers (distinct from introductory off
 | `asc_delete_promotional_offer` | `promotionalOfferId` | Remove an offer |
 
 > **Validation status.** `[VERIFY]` — the `offerCode` attribute, the inline `subscriptionPromotionalOfferPrices` shape, and the standalone add-price path are inferred. If a call 400s, attach the JSON:API error body to an issue.
+
+### Subscription offer codes & win-back
+
+Redeemable codes and lapsed-subscriber offers — the remaining subscription-offer types (introductory offers live under Subscriptions; promotional offers above).
+
+| Tool | Required inputs | Purpose |
+|---|---|---|
+| `asc_list_offer_codes` | `subscriptionId` | Offer codes on a subscription |
+| `asc_create_offer_code` | `subscriptionId`, `name`, `customerEligibilities`, `offerMode`, `duration` | Create an offer code (NEW/EXISTING/EXPIRED; price for paid modes) |
+| `asc_create_offer_code_custom_codes` | `offerCodeId`, `customCode`, `numberOfCodes` | A memorable code usable N times |
+| `asc_create_offer_code_one_time_codes` | `offerCodeId`, `numberOfCodes` | A batch of unique single-use codes |
+| `asc_list_win_back_offers` | `subscriptionId` | Win-back offers on a subscription |
+| `asc_create_win_back_offer` | `subscriptionId`, `referenceName`, `offerId`, `offerMode`, `duration` | Offer for lapsed subscribers |
+
+> **Validation status.** `[VERIFY]` — the offer-code/win-back relationship and price shapes are inferred (win-back is the newest). One-time-use code values are downloaded from App Store Connect, not exposed per-code via the API. If a call 400s, attach the JSON:API error body to an issue.
 
 ### Provisioning / code signing
 
