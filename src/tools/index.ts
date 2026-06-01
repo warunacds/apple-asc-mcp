@@ -27,6 +27,10 @@ import {
   declareNoDataCollectedTool, publishPrivacyTool,
 } from "./privacy.js";
 import {
+  getAppAvailabilityTool, setAppAvailabilityTool, listEncryptionDeclarationsTool,
+  createEncryptionDeclarationTool, assignEncryptionDeclarationTool,
+} from "./submission.js";
+import {
   listScreenshotSetsTool, findOrCreateScreenshotSetTool, uploadScreenshotTool,
   deleteScreenshotTool, reorderScreenshotsTool, findOrCreatePreviewSetTool, uploadPreviewTool,
 } from "./screenshots.js";
@@ -59,6 +63,10 @@ export const ALL_TOOLS: Tool[] = [
   // App privacy ("nutrition label")
   listPrivacyOptionsTool, getPrivacyDetailsTool, addDataUsageTool, removeDataUsageTool,
   declareNoDataCollectedTool, publishPrivacyTool,
+
+  // Submission gates (app availability, export compliance)
+  getAppAvailabilityTool, setAppAvailabilityTool, listEncryptionDeclarationsTool,
+  createEncryptionDeclarationTool, assignEncryptionDeclarationTool,
 
   // Screenshots & previews
   listScreenshotSetsTool, findOrCreateScreenshotSetTool, uploadScreenshotTool,

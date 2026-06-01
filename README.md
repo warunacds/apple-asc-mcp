@@ -37,7 +37,7 @@ Claude does the work; you review the result in App Store Connect and tap **Submi
 
 ## What it does
 
-74 MCP tools split across:
+79 MCP tools split across:
 
 - **Discovery** (11) — `asc_whoami`, list/get apps, builds, versions, localizations, categories, territories, plus `asc_release_status`: a one-shot snapshot that tells Claude what's blocking submission.
 - **Build & upload** (5) — `xc_archive`, `xc_export_ipa`, `asc_validate_ipa`, `asc_upload_ipa` (defaults to the new REST `/v1/buildUploads` flow from WWDC 2025; falls back to `xcrun altool` on demand), `asc_wait_for_build_processing`.
@@ -45,6 +45,7 @@ Claude does the work; you review the result in App Store Connect and tap **Submi
 - **App pricing** (3) — list price points, read the price schedule, set the app's price (free or paid; base territory + auto-equalize).
 - **Compliance declarations** (3) — set the content-rights declaration, read/set the age-rating questionnaire.
 - **App privacy** (6) — the data-collection "nutrition label": list the category/purpose/protection options, read current declarations, add/remove data usages, declare "no data collected", and publish.
+- **Submission gates** (5) — set app territory availability (where it's sold) and manage export-compliance encryption declarations (list/create/assign-to-build).
 - **Screenshots & previews** (7) — idempotent set-find-or-create, full reservation → multipart PUT → MD5 commit. Same code path covers iPhone/iPad/Watch/TV/Vision Pro/Mac and iMessage variants.
 - **Review submission** (4) — modern `reviewSubmissions` flow.
 - **TestFlight** (4) — list beta groups, set "What to test", distribute, submit for beta review.
@@ -266,6 +267,20 @@ The data-collection "nutrition label" every app must publish before submission. 
 | `asc_publish_privacy` | `appId` | Publish the label (Apple 400s if incomplete) |
 
 > **Validation status.** `[VERIFY]` — the research notes don't cover App Privacy, so the `appDataUsages` relationship shape and the publish-state PATCH are inferred. If a call 400s, attach the JSON:API error body to an issue.
+
+### Submission gates
+
+Final blockers beyond version metadata: where the app is sold, and export compliance.
+
+| Tool | Required inputs | Purpose |
+|---|---|---|
+| `asc_get_app_availability` | `appId` | Territories the app is available in |
+| `asc_set_app_availability` | `appId` | Set territories (or `availableInAllTerritories`) + auto-add-new flag |
+| `asc_list_encryption_declarations` | `appId` | Existing export-compliance declarations |
+| `asc_create_encryption_declaration` | `appId`, `usesEncryption` | Declare encryption usage (exempt/HTTPS-only is the common case) |
+| `asc_assign_encryption_declaration` | `buildId`, `declarationId` | Attach a declaration to a build |
+
+> **Validation status.** `[VERIFY]` — the `appAvailabilityV2`/`appAvailabilities` endpoints and the encryption-declaration attributes are inferred. If a call 400s, attach the JSON:API error body to an issue.
 
 ### Screenshots & previews
 
