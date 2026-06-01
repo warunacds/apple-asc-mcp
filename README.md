@@ -37,11 +37,12 @@ Claude does the work; you review the result in App Store Connect and tap **Submi
 
 ## What it does
 
-49 MCP tools split across:
+53 MCP tools split across:
 
 - **Discovery** (11) — `asc_whoami`, list/get apps, builds, versions, localizations, categories, territories, plus `asc_release_status`: a one-shot snapshot that tells Claude what's blocking submission.
 - **Build & upload** (5) — `xc_archive`, `xc_export_ipa`, `asc_validate_ipa`, `asc_upload_ipa` (defaults to the new REST `/v1/buildUploads` flow from WWDC 2025; falls back to `xcrun altool` on demand), `asc_wait_for_build_processing`.
-- **Versioning & metadata** (9) — create/update versions, attach builds, upsert per-locale description/keywords/promo text/what's new, set categories, set App Review demo credentials.
+- **Versioning & metadata** (10) — create/update versions, attach builds, upsert per-locale description/keywords/promo text/what's new, set categories, set App Review demo credentials, and control the 7-day phased release (`asc_set_phased_release`).
+- **App pricing** (3) — list price points, read the price schedule, set the app's price (free or paid; base territory + auto-equalize).
 - **Screenshots & previews** (7) — idempotent set-find-or-create, full reservation → multipart PUT → MD5 commit. Same code path covers iPhone/iPad/Watch/TV/Vision Pro/Mac and iMessage variants.
 - **Review submission** (4) — modern `reviewSubmissions` flow.
 - **TestFlight** (4) — list beta groups, set "What to test", distribute, submit for beta review.
@@ -218,10 +219,23 @@ See [`examples/release.example.json`](examples/release.example.json) for a sampl
 | `asc_attach_build_to_version` | `versionId`, `buildId` | Set or swap the binary on a version |
 | `asc_set_version_localization` | `versionId`, `locale` | Upsert description, keywords, whatsNew, etc. |
 | `asc_release_to_store` | `versionId` | Manually release a `PENDING_DEVELOPER_RELEASE` build |
+| `asc_set_phased_release` | `versionId` | Enable / pause / resume / complete the 7-day phased rollout |
 | `asc_get_editable_app_info` | `appId` | Find the editable AppInfo (state=PREPARE_FOR_SUBMISSION) |
 | `asc_set_app_categories` | `appInfoId`, `primaryCategoryId` | Set primary/secondary categories |
 | `asc_set_app_info_localization` | `appInfoId`, `locale` | Upsert name, subtitle, privacy URL |
 | `asc_set_review_details` | `versionId` | Contact info + demo credentials |
+
+### App pricing
+
+The app's *own* price (free or paid), distinct from in-app-purchase pricing. Apple uses fixed, server-defined price points per territory — you pick a tier, you don't type an amount. `asc_set_app_price` resolves a `customerPrice` like `"4.99"` to the matching point in the base territory (or `free: true` for the $0 tier); territories you don't list auto-equalize.
+
+| Tool | Required inputs | Purpose |
+|---|---|---|
+| `asc_list_app_price_points` | `appId` | Valid price tiers for a territory |
+| `asc_get_app_price_schedule` | `appId` | The app's current price schedule |
+| `asc_set_app_price` | `appId` | Set price (`free`, `customerPrice`, or `pricePointId`); auto-equalizes |
+
+> **Validation status.** Like the rest of the server, these are not yet exercised against live Apple traffic; the price-schedule shape is inferred from `research/api-reference.md` §12. If a call 400s, attach the JSON:API error body to an issue.
 
 ### Screenshots & previews
 
