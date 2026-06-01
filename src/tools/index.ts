@@ -17,9 +17,10 @@ import {
 } from "./subscriptions.js";
 import {
   createVersionTool, updateVersionTool, attachBuildTool, setVersionLocalizationTool,
-  releaseToStoreTool, getEditableAppInfoTool, setAppCategoriesTool, setAppInfoLocalizationTool,
-  setReviewDetailsTool,
+  releaseToStoreTool, setPhasedReleaseTool, getEditableAppInfoTool, setAppCategoriesTool,
+  setAppInfoLocalizationTool, setReviewDetailsTool,
 } from "./metadata.js";
+import { listAppPricePointsTool, getAppPriceScheduleTool, setAppPriceTool } from "./pricing.js";
 import {
   listScreenshotSetsTool, findOrCreateScreenshotSetTool, uploadScreenshotTool,
   deleteScreenshotTool, reorderScreenshotsTool, findOrCreatePreviewSetTool, uploadPreviewTool,
@@ -41,8 +42,11 @@ export const ALL_TOOLS: Tool[] = [
 
   // Version & metadata
   createVersionTool, updateVersionTool, attachBuildTool, setVersionLocalizationTool,
-  releaseToStoreTool, getEditableAppInfoTool, setAppCategoriesTool, setAppInfoLocalizationTool,
-  setReviewDetailsTool,
+  releaseToStoreTool, setPhasedReleaseTool, getEditableAppInfoTool, setAppCategoriesTool,
+  setAppInfoLocalizationTool, setReviewDetailsTool,
+
+  // App pricing
+  listAppPricePointsTool, getAppPriceScheduleTool, setAppPriceTool,
 
   // Screenshots & previews
   listScreenshotSetsTool, findOrCreateScreenshotSetTool, uploadScreenshotTool,
