@@ -271,10 +271,10 @@ Final blockers beyond version metadata: where the app is sold, and export compli
 | `asc_get_app_availability` | `appId` | Territories the app is available in |
 | `asc_set_app_availability` | `appId` | Set territories (or `availableInAllTerritories`) + auto-add-new flag |
 | `asc_list_encryption_declarations` | `appId` | Existing export-compliance declarations |
-| `asc_create_encryption_declaration` | `appId`, `usesEncryption` | Declare encryption usage (exempt/HTTPS-only is the common case) |
+| `asc_create_encryption_declaration` | `appId`, `appDescription`, `containsProprietaryCryptography`, `containsThirdPartyCryptography`, `availableOnFrenchStore` | Export-compliance declaration (HTTPS-only apps answer false to both crypto flags) |
 | `asc_assign_encryption_declaration` | `buildId`, `declarationId` | Attach a declaration to a build |
 
-> **Validation status.** `[VERIFY]` — the `appAvailabilityV2`/`appAvailabilities` endpoints and the encryption-declaration attributes are inferred. If a call 400s, attach the JSON:API error body to an issue.
+> **Validation status.** Write shapes cross-checked against the App Store Connect OpenAPI spec: `set_app_availability` inlines `territoryAvailabilities` resources, and the encryption declaration is `appDescription` + two cryptography flags. Not yet exercised against live Apple traffic — if a call 400s, attach the JSON:API error body to an issue.
 
 ### Screenshots & previews
 
@@ -386,7 +386,7 @@ Discounts for **existing or lapsed** subscribers (distinct from introductory off
 | Tool | Required inputs | Purpose |
 |---|---|---|
 | `asc_list_promotional_offers` | `subscriptionId` | Offers on a subscription |
-| `asc_create_promotional_offer` | `subscriptionId`, `name`, `offerCode`, `offerMode`, `duration` | Create an offer (FREE_TRIAL needs no price; paid modes need `customerPrice`/`pricePointId` in `baseTerritory`) |
+| `asc_create_promotional_offer` | `subscriptionId`, `name`, `offerCode`, `offerMode`, `duration`, + price | Create an offer (a price — `customerPrice`/`pricePointId` in `baseTerritory` — is required for every mode) |
 | `asc_add_promotional_offer_price` | `promotionalOfferId`, `subscriptionId`, `territory` | Add a discounted price for another territory |
 | `asc_delete_promotional_offer` | `promotionalOfferId` | Remove an offer |
 
@@ -399,13 +399,13 @@ Redeemable codes and lapsed-subscriber offers — the remaining subscription-off
 | Tool | Required inputs | Purpose |
 |---|---|---|
 | `asc_list_offer_codes` | `subscriptionId` | Offer codes on a subscription |
-| `asc_create_offer_code` | `subscriptionId`, `name`, `customerEligibilities`, `offerMode`, `duration` | Create an offer code (NEW/EXISTING/EXPIRED; price for paid modes) |
+| `asc_create_offer_code` | `subscriptionId`, `name`, `customerEligibilities`, `offerEligibility`, `offerMode`, `duration`, + price | Create an offer code (NEW/EXISTING/EXPIRED; a price is required) |
 | `asc_create_offer_code_custom_codes` | `offerCodeId`, `customCode`, `numberOfCodes` | A memorable code usable N times |
-| `asc_create_offer_code_one_time_codes` | `offerCodeId`, `numberOfCodes` | A batch of unique single-use codes |
+| `asc_create_offer_code_one_time_codes` | `offerCodeId`, `numberOfCodes`, `expirationDate` | A batch of unique single-use codes |
 | `asc_list_win_back_offers` | `subscriptionId` | Win-back offers on a subscription |
-| `asc_create_win_back_offer` | `subscriptionId`, `referenceName`, `offerId`, `offerMode`, `duration` | Offer for lapsed subscribers |
+| `asc_create_win_back_offer` | `subscriptionId`, `referenceName`, `offerId`, `offerMode`, `duration`, `priority`, eligibility window, `startDate`, + price | Offer for lapsed subscribers |
 
-> **Validation status.** `[VERIFY]` — the offer-code/win-back relationship and price shapes are inferred (win-back is the newest). One-time-use code values are downloaded from App Store Connect, not exposed per-code via the API. If a call 400s, attach the JSON:API error body to an issue.
+> **Validation status.** Write shapes cross-checked against the App Store Connect OpenAPI spec: offer codes require `offerEligibility` and a price; win-back offers require the customer-eligibility window (months paid + a months-since-last-subscribed range), a `priority`, and a `startDate`. One-time-use code values are downloaded from App Store Connect, not exposed per-code via the API. Not yet exercised live — if a call 400s, attach the JSON:API error body to an issue.
 
 ### Provisioning / code signing
 

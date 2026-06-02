@@ -36,14 +36,19 @@ function fakeClient(responses: {
 const cfg = { keyId: "K", issuerId: "I", privateKeyPem: "", preferRestUpload: true } as AscConfig;
 const parse = (t: { inputSchema: { parse: (x: unknown) => unknown } }, x: unknown) => t.inputSchema.parse(x);
 
-test("asc_create_webhook posts url/eventTypes + app relationship", async () => {
+test("asc_create_webhook posts url/eventTypes/secret + app relationship", async () => {
   const { client, calls } = fakeClient({ post: () => ({ data: { id: "wh1" } }) });
-  await createWebhookTool.handler(parse(createWebhookTool, { appId: "app1", name: "CI", url: "https://x.test/hook", eventTypes: ["BUILD_PROCESSING_COMPLETED"] }), { client, config: cfg });
+  await createWebhookTool.handler(parse(createWebhookTool, { appId: "app1", name: "CI", url: "https://x.test/hook", eventTypes: ["APP_STORE_VERSION_APP_VERSION_STATE_UPDATED"], secret: "s3cr3t" }), { client, config: cfg });
   const body = calls.find((c) => c.method === "POST")!.body as any;
   assert.equal(body.data.type, "webhooks");
   assert.equal(body.data.attributes.url, "https://x.test/hook");
-  assert.deepEqual(body.data.attributes.eventTypes, ["BUILD_PROCESSING_COMPLETED"]);
+  assert.deepEqual(body.data.attributes.eventTypes, ["APP_STORE_VERSION_APP_VERSION_STATE_UPDATED"]);
+  assert.equal(body.data.attributes.secret, "s3cr3t");
   assert.deepEqual(body.data.relationships.app.data, { type: "apps", id: "app1" });
+});
+
+test("asc_create_webhook requires a secret", () => {
+  assert.throws(() => parse(createWebhookTool, { appId: "app1", name: "CI", url: "https://x.test/hook", eventTypes: ["X"] }));
 });
 
 test("asc_ping_webhook posts a webhookPings with the webhook relationship", async () => {
@@ -109,8 +114,14 @@ test("asc_create_achievement / asc_create_leaderboard post under the gameCenterD
   const bodies = calls.filter((c) => c.method === "POST").map((c) => c.body as any);
   assert.deepEqual(bodies[0].data.relationships.gameCenterDetail.data, { type: "gameCenterDetails", id: "gc1" });
   assert.equal(bodies[0].data.attributes.points, 10);
+  // showBeforeEarned + repeatable are required by the spec — always sent (defaults applied).
+  assert.equal(bodies[0].data.attributes.showBeforeEarned, true);
+  assert.equal(bodies[0].data.attributes.repeatable, false);
   assert.equal(bodies[1].data.type, "gameCenterLeaderboards");
   assert.equal(bodies[1].data.attributes.submissionType, "BEST_SCORE");
+  // The spec uses scoreSortType (ASC/DESC), not a sortAscending boolean.
+  assert.equal(bodies[1].data.attributes.scoreSortType, "DESC");
+  assert.equal("sortAscending" in bodies[1].data.attributes, false);
 });
 
 test("alt distribution: create key + marketplace domain post the right shapes", async () => {

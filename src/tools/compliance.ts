@@ -3,9 +3,10 @@ import { tool } from "./registry.js";
 
 /**
  * Submission compliance declarations: content rights and the age-rating questionnaire.
- * (App privacy / "nutrition label" data usages are a separate, larger surface — not here yet.)
+ * (App privacy / "nutrition label" data usages are not in the public API — UI-only.)
  *
- * Not yet validated against live Apple traffic; marked [VERIFY] where the shape is inferred.
+ * Age-rating fields cross-checked against the OpenAPI spec (AgeRatingDeclarationUpdateRequest).
+ * The all-or-nothing PATCH behaviour was confirmed live (a partial write 409s).
  */
 
 // Content rights lives as an attribute on the app itself (not a separate resource).
@@ -41,14 +42,17 @@ async function resolveAppInfoId(client: import("../client.js").AscClient, appId:
 const FREQUENCY = ["NONE", "INFREQUENT_OR_MILD", "FREQUENT_OR_INTENSE"] as const;
 const freq = () => z.enum(FREQUENCY).optional();
 
-// The well-established questionnaire fields. Apple overhauled age ratings in 2024–25 (new bands and
-// questions); pass anything not listed here via `additionalDeclarations`.
+// The questionnaire fields, cross-checked against the OpenAPI spec (AgeRatingDeclarationUpdateRequest).
+// Frequency questions take NONE / INFREQUENT_OR_MILD / FREQUENT_OR_INTENSE; the rest are booleans.
+// Override fields (ageRatingOverride[V2], koreaAgeRatingOverride, developerAgeRatingInfoUrl) are niche —
+// pass them via `additionalDeclarations`.
 const AGE_RATING_FIELDS = [
   "violenceCartoonOrFantasy", "violenceRealistic", "violenceRealisticProlongedGraphicOrSadistic",
   "profanityOrCrudeHumor", "matureOrSuggestiveThemes", "horrorOrFearThemes",
-  "medicalOrTreatmentInformation", "alcoholTobaccoOrDrugUseOrReferences",
+  "medicalOrTreatmentInformation", "alcoholTobaccoOrDrugUseOrReferences", "gunsOrOtherWeapons",
   "sexualContentOrNudity", "sexualContentGraphicAndNudity", "gamblingSimulated", "contests",
-  "gambling", "unrestrictedWebAccess", "kidsAgeBand",
+  "gambling", "unrestrictedWebAccess", "advertising", "healthOrWellnessTopics", "lootBox",
+  "messagingAndChat", "parentalControls", "ageAssurance", "userGeneratedContent", "kidsAgeBand",
 ] as const;
 
 export const getAgeRatingTool = tool({
@@ -74,11 +78,10 @@ export const setAgeRatingTool = tool({
   name: "asc_set_age_rating",
   description:
     "Set the age-rating questionnaire for an app. Frequency questions take NONE / INFREQUENT_OR_MILD / " +
-    "FREQUENT_OR_INTENSE. Apple requires the WHOLE questionnaire on each write, so this merges your answers onto " +
-    "the app's current declaration and sends the full set — a brand-new (all-null) declaration must be answered in " +
-    "full. Apple revised the questionnaire in 2024–25 (added advertising, gunsOrOtherWeapons, healthOrWellnessTopics, " +
-    "lootBox, messagingAndChat, parentalControls, userGeneratedContent, ageAssurance, …) — pass those via " +
-    "additionalDeclarations.",
+    "FREQUENT_OR_INTENSE; the rest are booleans. Apple requires the WHOLE questionnaire on each write, so this merges " +
+    "your answers onto the app's current declaration and sends the full set — a brand-new (all-null) declaration must " +
+    "be answered in full. Rating-override fields (ageRatingOverride, koreaAgeRatingOverride, developerAgeRatingInfoUrl) " +
+    "go via additionalDeclarations.",
   inputSchema: z.object({
     appId: z.string(),
     appInfoId: z.string().optional().describe("Skip AppInfo resolution by passing it directly."),
@@ -90,14 +93,22 @@ export const setAgeRatingTool = tool({
     horrorOrFearThemes: freq(),
     medicalOrTreatmentInformation: freq(),
     alcoholTobaccoOrDrugUseOrReferences: freq(),
+    gunsOrOtherWeapons: freq(),
     sexualContentOrNudity: freq(),
     sexualContentGraphicAndNudity: freq(),
     gamblingSimulated: freq(),
     contests: freq(),
     gambling: z.boolean().optional(),
     unrestrictedWebAccess: z.boolean().optional(),
+    advertising: z.boolean().optional().describe("Whether the app displays third-party advertising."),
+    healthOrWellnessTopics: z.boolean().optional(),
+    lootBox: z.boolean().optional().describe("Whether the app contains randomized in-app purchases (loot boxes)."),
+    messagingAndChat: z.boolean().optional(),
+    parentalControls: z.boolean().optional(),
+    ageAssurance: z.boolean().optional(),
+    userGeneratedContent: z.boolean().optional(),
     kidsAgeBand: z.enum(["FIVE_AND_UNDER", "SIX_TO_EIGHT", "NINE_TO_ELEVEN"]).nullable().optional().describe("Only for apps in the Kids category; null clears it."),
-    additionalDeclarations: z.record(z.string(), z.unknown()).optional().describe("Escape hatch for questionnaire fields Apple added/renamed (the 2024–25 overhaul). Merged verbatim into the PATCH attributes."),
+    additionalDeclarations: z.record(z.string(), z.unknown()).optional().describe("Escape hatch for rating-override fields and any questionnaire field Apple adds/renames. Merged verbatim into the PATCH attributes."),
   }).strict(),
   handler: async (input, { client }) => {
     const appInfoId = input.appInfoId ?? (await resolveAppInfoId(client, input.appId));

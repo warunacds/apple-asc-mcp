@@ -31,11 +31,12 @@ test("asc_create_offer_code (paid) posts eligibilities + inline price", async ()
   });
   await createOfferCodeTool.handler(parse(createOfferCodeTool, {
     subscriptionId: "sub1", name: "Welcome", customerEligibilities: ["NEW", "EXPIRED"],
-    offerMode: "PAY_AS_YOU_GO", duration: "ONE_MONTH", customerPrice: "1.99",
+    offerEligibility: "STACK_WITH_INTRO_OFFERS", offerMode: "PAY_AS_YOU_GO", duration: "ONE_MONTH", customerPrice: "1.99",
   }), { client, config: cfg });
   const body = calls.find((c) => c.method === "POST")!.body as any;
   assert.equal(body.data.type, "subscriptionOfferCodes");
   assert.deepEqual(body.data.attributes.customerEligibilities, ["NEW", "EXPIRED"]);
+  assert.equal(body.data.attributes.offerEligibility, "STACK_WITH_INTRO_OFFERS");
   const lid = body.data.relationships.prices.data[0].id;
   const inc = body.included[0];
   assert.equal(inc.id, lid);
@@ -43,14 +44,24 @@ test("asc_create_offer_code (paid) posts eligibilities + inline price", async ()
   assert.equal(inc.relationships.subscriptionPricePoint.data.id, "spp_199");
 });
 
-test("asc_create_offer_code (FREE_TRIAL) carries no price", async () => {
-  const { client, calls } = fakeClient({ post: () => ({ data: { id: "oc2" } }) });
+test("asc_create_offer_code requires offerEligibility and a price", async () => {
+  // The spec marks both offerEligibility and prices as required, so a priceless offer code is rejected.
+  assert.throws(() => parse(createOfferCodeTool, {
+    subscriptionId: "sub1", name: "Free", customerEligibilities: ["NEW"],
+    offerEligibility: "REPLACE_INTRO_OFFERS", offerMode: "FREE_TRIAL", duration: "ONE_WEEK",
+  }));
+  // A FREE_TRIAL offer code with a price still inlines the price block.
+  const { client, calls } = fakeClient({
+    list: () => [{ id: "spp_0", attributes: { customerPrice: "0.00" } }],
+    post: () => ({ data: { id: "oc2" } }),
+  });
   await createOfferCodeTool.handler(parse(createOfferCodeTool, {
-    subscriptionId: "sub1", name: "Free", customerEligibilities: ["NEW"], offerMode: "FREE_TRIAL", duration: "ONE_WEEK",
+    subscriptionId: "sub1", name: "Free", customerEligibilities: ["NEW"],
+    offerEligibility: "REPLACE_INTRO_OFFERS", offerMode: "FREE_TRIAL", duration: "ONE_WEEK", customerPrice: "0.00",
   }), { client, config: cfg });
-  assert.equal(calls.some((c) => c.method === "LIST"), false);
   const body = calls.find((c) => c.method === "POST")!.body as any;
-  assert.equal(body.data.relationships.prices, undefined);
+  assert.equal(body.included[0].type, "subscriptionOfferCodePrices");
+  assert.equal(body.included[0].relationships.subscriptionPricePoint.data.id, "spp_0");
 });
 
 test("asc_create_offer_code_custom_codes posts the code + offerCode relationship", async () => {
@@ -67,11 +78,16 @@ test("asc_create_offer_code_custom_codes posts the code + offerCode relationship
 
 test("asc_create_offer_code_one_time_codes posts a batch", async () => {
   const { client, calls } = fakeClient({ post: () => ({ data: { id: "otb1" } }) });
-  const out = await createOfferCodeOneTimeCodesTool.handler(parse(createOfferCodeOneTimeCodesTool, { offerCodeId: "oc1", numberOfCodes: 500 }), { client, config: cfg }) as { batchId: string };
+  const out = await createOfferCodeOneTimeCodesTool.handler(parse(createOfferCodeOneTimeCodesTool, { offerCodeId: "oc1", numberOfCodes: 500, expirationDate: "2026-12-31" }), { client, config: cfg }) as { batchId: string };
   const body = calls.find((c) => c.method === "POST")!.body as any;
   assert.equal(body.data.type, "subscriptionOfferCodeOneTimeUseCodes");
   assert.equal(body.data.attributes.numberOfCodes, 500);
+  assert.equal(body.data.attributes.expirationDate, "2026-12-31");
   assert.equal(out.batchId, "otb1");
+});
+
+test("asc_create_offer_code_one_time_codes requires an expirationDate", () => {
+  assert.throws(() => parse(createOfferCodeOneTimeCodesTool, { offerCodeId: "oc1", numberOfCodes: 500 }));
 });
 
 test("asc_create_win_back_offer (paid) posts offerId + inline winBackOfferPrices", async () => {
@@ -81,13 +97,26 @@ test("asc_create_win_back_offer (paid) posts offerId + inline winBackOfferPrices
   });
   await createWinBackOfferTool.handler(parse(createWinBackOfferTool, {
     subscriptionId: "sub1", referenceName: "Comeback", offerId: "COMEBACK", offerMode: "PAY_AS_YOU_GO",
-    duration: "THREE_MONTHS", customerPrice: "0.99",
+    duration: "THREE_MONTHS", customerPrice: "0.99", priority: "NORMAL",
+    customerEligibilityPaidSubscriptionDurationInMonths: 6,
+    timeSinceLastSubscribedMonths: { minimum: 1, maximum: 12 }, startDate: "2026-07-01",
   }), { client, config: cfg });
   const body = calls.find((c) => c.method === "POST")!.body as any;
   assert.equal(body.data.type, "winBackOffers");
   assert.equal(body.data.attributes.offerId, "COMEBACK");
+  assert.equal(body.data.attributes.priority, "NORMAL");
+  assert.equal(body.data.attributes.startDate, "2026-07-01");
+  assert.equal(body.data.attributes.customerEligibilityPaidSubscriptionDurationInMonths, 6);
+  assert.deepEqual(body.data.attributes.customerEligibilityTimeSinceLastSubscribedInMonths, { minimum: 1, maximum: 12 });
   assert.equal(body.included[0].type, "winBackOfferPrices");
   assert.equal(body.included[0].relationships.subscriptionPricePoint.data.id, "spp_099");
+});
+
+test("asc_create_win_back_offer requires eligibility window, priority, and startDate", () => {
+  assert.throws(() => parse(createWinBackOfferTool, {
+    subscriptionId: "sub1", referenceName: "Comeback", offerId: "COMEBACK", offerMode: "PAY_AS_YOU_GO",
+    duration: "THREE_MONTHS", customerPrice: "0.99",
+  }));
 });
 
 test("asc_list_offer_codes / asc_list_win_back_offers hit the subscription sub-resources", async () => {
