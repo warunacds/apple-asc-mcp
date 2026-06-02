@@ -4,6 +4,12 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## [Unreleased]
 
+### Documentation
+- README: added a **"Use with any MCP client"** section (Codex `config.toml` + Cursor/Windsurf/VS Code/Zed
+  snippets) — it's a standard stdio MCP server, not Claude-specific — plus a heads-up that the ~150-tool
+  surface is cheap in lazy-loading clients (Claude Code) but token-heavy in clients that register every
+  schema up front.
+
 ## [0.2.0] — 2026-06-02
 
 First public release. Grew from 39 tools to **158**, covering nearly the entire App Store Connect API
