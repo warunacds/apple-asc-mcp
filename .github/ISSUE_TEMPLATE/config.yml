@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
   - name: Security vulnerability
-    url: https://github.com/warunacds/appstore-connect-mcp/security/advisories/new
+    url: https://github.com/warunacds/app-store-connect-mcp/security/advisories/new
     about: Report security issues privately — please do not open a public issue.
   - name: Question / discussion
-    url: https://github.com/warunacds/appstore-connect-mcp/discussions
+    url: https://github.com/warunacds/app-store-connect-mcp/discussions
     about: Usage questions and ideas.
