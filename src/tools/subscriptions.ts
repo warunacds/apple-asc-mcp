@@ -232,7 +232,7 @@ export const listSubscriptionPricePointsTool = tool({
     const points = await client.list<SubscriptionPricePointAttrs>(`/v1/subscriptions/${input.subscriptionId}/pricePoints`, {
       "filter[territory]": input.territory,
       limit: input.limit ?? 200,
-      "fields[subscriptionPricePoints]": "customerPrice,proceeds,proceedsForYear1",
+      "fields[subscriptionPricePoints]": "customerPrice,proceeds",
     });
     return points.map((p) => ({ id: p.id, ...p.attributes }));
   },
@@ -272,7 +272,9 @@ export const setSubscriptionPriceTool = tool({
     }
 
     // Unlike IAPs there is no price-schedule resource — a subscriptionPrice is created directly.
-    // [VERIFY] that setting the base territory auto-equalizes the rest (vs. one price per territory).
+    // [VERIFY] A live POST returned 409 "error processing the pricing information" on
+    // subscriptionPricePoint/id when a `territory` relationship was also sent — the price point already
+    // encodes its territory, so we omit `territory`. Re-confirm against a live app.
     const attributes: Record<string, unknown> = {};
     if (input.preserveCurrentPrice !== undefined) attributes.preserveCurrentPrice = input.preserveCurrentPrice;
     if (input.startDate) attributes.startDate = input.startDate;
@@ -283,7 +285,6 @@ export const setSubscriptionPriceTool = tool({
         relationships: {
           subscription: { data: { type: "subscriptions", id: input.subscriptionId } },
           subscriptionPricePoint: { data: { type: "subscriptionPricePoints", id: pricePointId } },
-          territory: { data: { type: "territories", id: input.baseTerritory } },
         },
       },
     });

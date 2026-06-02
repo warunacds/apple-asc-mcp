@@ -4,6 +4,19 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## [Unreleased]
 
+### Fixed
+- First live run against a real App Store Connect app surfaced and corrected several `[VERIFY]` issues:
+  `asc_get_app_availability` (relationship is `territoryAvailabilities`, not `availableTerritories`),
+  `asc_list_encryption_declarations` (drop the unsupported `sort`), `asc_get_game_center_detail`
+  (`challengeEnabled` isn't a valid field), `asc_get_app_price_schedule` (degrade gracefully when no
+  price is set), `asc_list_subscription_price_points` (drop the invalid `proceedsForYear1` field),
+  `asc_set_age_rating` (Apple requires the *whole* questionnaire per write — now merges onto the current
+  declaration), `asc_set_subscription_price` (omit `territory` — the price point encodes it), and
+  `asc_list_privacy_options` (App Privacy reference endpoints are incorrect — now best-effort, pending the
+  correct resource names).
+- Confirmed working live: auth, app/version/build/category/territory reads, `asc_set_content_rights`,
+  the full IAP flow (create → localize → price → availability), and subscription create + localization.
+
 ### Added
 - **Auto-renewable subscriptions** — 12 tools: `asc_list_subscription_groups`, `asc_create_subscription_group`, `asc_set_subscription_group_localization`, `asc_create_subscription`, `asc_get_subscription`, `asc_set_subscription_localization`, `asc_list_subscription_price_points`, `asc_set_subscription_price` (base territory + auto-equalize, with `preserveCurrentPrice`), `asc_set_subscription_availability`, `asc_set_subscription_intro_offer` (free trial / pay-as-you-go / pay-up-front), `asc_upload_subscription_review_screenshot`, and `asc_submit_subscription_for_review` (group-level).
 - **In-App Purchases (v2)** — 9 tools covering the full IAP path: `asc_list_in_app_purchases`, `asc_get_in_app_purchase`, `asc_create_in_app_purchase`, `asc_set_iap_localization` (upsert display name + description per locale), `asc_list_iap_price_points`, `asc_set_iap_price` (base territory + auto-equalize), `asc_set_iap_availability`, `asc_upload_iap_review_screenshot` (reuses the existing asset-upload runner), and `asc_submit_iap_for_review`.

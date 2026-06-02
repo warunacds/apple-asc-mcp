@@ -15,10 +15,12 @@ export const getAppAvailabilityTool = tool({
   description: "Read the app's territory availability (which App Store territories it's available in, and whether new territories auto-add).",
   inputSchema: z.object({ appId: z.string() }).strict(),
   handler: async (input, { client }) => {
-    // [VERIFY] the current model is appAvailabilityV2 (a singleton off the app); availableTerritories sideloaded.
+    // appAvailabilityV2 is a singleton off the app; territories live under `territoryAvailabilities`
+    // (confirmed live — `availableTerritories` is not a valid relationship here). Best-effort so an
+    // app with no availability record yet degrades to null rather than erroring.
     return await client.get(`/v1/apps/${input.appId}/appAvailabilityV2`, {
-      query: { include: "availableTerritories", "limit[availableTerritories]": 200 },
-    });
+      query: { include: "territoryAvailabilities", "limit[territoryAvailabilities]": 200 },
+    }).catch(() => ({ data: null }));
   },
 });
 
@@ -42,14 +44,15 @@ export const setAppAvailabilityTool = tool({
       const all = await client.list("/v1/territories", { limit: 200 });
       territoryIds = all.map((t) => t.id);
     }
-    // [VERIFY] v2 create endpoint + relationship shape (mirrors inAppPurchaseAvailabilities / subscriptionAvailabilities).
+    // [VERIFY] the GET relationship is `territoryAvailabilities` (confirmed live); the v2 POST shape is
+    // still unconfirmed — it may require inline territoryAvailability objects rather than plain territory refs.
     const res = await client.post<{ data: { id: string } }>("/v2/appAvailabilities", {
       data: {
         type: "appAvailabilities",
         attributes: { availableInNewTerritories: input.availableInNewTerritories },
         relationships: {
           app: { data: { type: "apps", id: input.appId } },
-          availableTerritories: { data: (territoryIds ?? []).map((id) => ({ type: "territories", id })) },
+          territoryAvailabilities: { data: (territoryIds ?? []).map((id) => ({ type: "territories", id })) },
         },
       },
     });
@@ -64,10 +67,10 @@ export const listEncryptionDeclarationsTool = tool({
   description: "List the app's export-compliance encryption declarations (id, state, and the usesEncryption/exempt flags).",
   inputSchema: z.object({ appId: z.string() }).strict(),
   handler: async (input, { client }) => {
+    // [VERIFY] `sort` is rejected on this endpoint (confirmed live) — omit it.
     const decls = await client.list(`/v1/appEncryptionDeclarations`, {
       "filter[app]": input.appId,
       limit: 50,
-      sort: "-createdDate",
     });
     return decls.map((d) => ({ id: d.id, ...d.attributes }));
   },

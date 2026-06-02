@@ -45,7 +45,7 @@ test("asc_set_app_availability posts explicit territories", async () => {
   const body = post.body as any;
   assert.equal(body.data.type, "appAvailabilities");
   assert.deepEqual(body.data.relationships.app.data, { type: "apps", id: "app1" });
-  assert.equal(body.data.relationships.availableTerritories.data.length, 2);
+  assert.equal(body.data.relationships.territoryAvailabilities.data.length, 2);
   assert.equal(body.data.attributes.availableInNewTerritories, true);
 });
 
@@ -57,7 +57,7 @@ test("asc_set_app_availability expands availableInAllTerritories via /v1/territo
   await setAppAvailabilityTool.handler(parse(setAppAvailabilityTool, { appId: "app1", availableInAllTerritories: true, availableInNewTerritories: false }), { client, config: cfg });
   assert.equal(calls.find((c) => c.method === "LIST")!.path, "/v1/territories");
   const body = calls.find((c) => c.method === "POST")!.body as any;
-  assert.equal(body.data.relationships.availableTerritories.data.length, 3);
+  assert.equal(body.data.relationships.territoryAvailabilities.data.length, 3);
   assert.equal(body.data.attributes.availableInNewTerritories, false);
 });
 

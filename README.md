@@ -13,7 +13,7 @@ xcodebuild → archive → export → upload → metadata → screenshots → su
 
 Claude does the work; you review the result in App Store Connect and tap **Submit for Review**.
 
-> **Status: 0.1.0-alpha.1.** The architecture is solid and the API coverage is current as of Apple's OpenAPI v4.3 + WWDC 2025, but the server has not yet been exercised against the live App Store Connect API end-to-end with a real IPA. Treat as alpha until that flight test happens. See [Known limitations](#known-limitations).
+> **Status: 0.1.0-alpha.1.** API coverage is current as of Apple's OpenAPI v4.3 + WWDC 2025. The core release/monetization paths **have now been exercised against the live App Store Connect API** — auth, metadata, screenshot upload, app pricing discovery, and the full in-app-purchase create→localize→price→availability flow plus subscription create/localize all work against a real app. Tools still carrying `[VERIFY]` (notably App Privacy data usages, the age-rating full-questionnaire write, app-availability v2 write, and subscription-price POST) are the ones not yet fully confirmed. Treat as alpha. See [Known limitations](#known-limitations).
 
 ---
 
