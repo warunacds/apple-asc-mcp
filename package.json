@@ -7,7 +7,7 @@
   "homepage": "https://github.com/warunacds/apple-asc-mcp#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/warunacds/apple-asc-mcp.git"
+    "url": "git+https://github.com/warunacds/apple-asc-mcp.git"
   },
   "bugs": {
     "url": "https://github.com/warunacds/apple-asc-mcp/issues"
@@ -31,7 +31,7 @@
   ],
   "type": "module",
   "bin": {
-    "apple-asc-mcp": "./dist/index.js"
+    "apple-asc-mcp": "dist/index.js"
   },
   "files": [
     "dist",
