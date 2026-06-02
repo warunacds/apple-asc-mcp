@@ -1,0 +1,24 @@
+name: Feature request
+description: Cover another App Store Connect API area, or improve an existing tool.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What would you like?
+      description: The capability or tool you want. If it maps to a specific App Store Connect resource, name it.
+      placeholder: "A tool to manage sandbox testers (sandboxTesters)."
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why
+      description: What you're trying to accomplish — the release/marketing/ops workflow this unblocks.
+    validations:
+      required: true
+  - type: input
+    id: api-ref
+    attributes:
+      label: App Store Connect API reference (optional)
+      description: Link to the relevant developer.apple.com docs, or the resource/endpoint name.

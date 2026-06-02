@@ -13,7 +13,17 @@ xcodebuild → archive → export → upload → metadata → screenshots → su
 
 Claude does the work; you review the result in App Store Connect and tap **Submit for Review**.
 
-> **Status: 0.1.0-alpha.1.** API coverage is current as of Apple's OpenAPI v4.3 + WWDC 2025. The core release/monetization paths **have now been exercised against the live App Store Connect API** — auth, metadata, screenshot upload, app pricing discovery, and the full in-app-purchase create→localize→price→availability flow plus subscription create/localize all work against a real app. The full in-app-purchase and subscription monetization flows (create → localize → price → availability) are confirmed live. Tools still carrying `[VERIFY]` (the age-rating full-questionnaire write and the app-availability v2 write shape) aren't yet fully confirmed. (App Privacy "nutrition label" tools were removed — that data isn't in the public App Store Connect API.) Treat as alpha. See [Known limitations](#known-limitations).
+> **Status: 0.2.0 (pre-1.0).** API coverage is current as of Apple's OpenAPI v4.3 + WWDC 2025, and every
+> tool's request shape has been cross-checked against Apple's published OpenAPI spec. The core
+> release/monetization paths are **live-validated against a real App Store Connect app** — auth, metadata,
+> screenshot upload, app-pricing discovery, the full in-app-purchase and subscription flows (create →
+> localize → price → availability), age rating, content rights, users, and the delete tools all work
+> against real Apple traffic. The remaining domains (webhooks, Xcode Cloud, reporting, Game Center,
+> alternative distribution, in-app events, custom product pages, A/B experiments) are **spec-confirmed but
+> not yet exercised live** — their shapes are correct per the spec but unproven against Apple's API. They
+> carry `[VERIFY]` notes where a detail is still inferred. (App Privacy "nutrition label" tools were removed
+> — that data isn't in the public App Store Connect API.) This is a `0.x` release: expect shapes to move as
+> tools meet live traffic, and **pin your version**. See [Known limitations](#known-limitations).
 
 ---
 

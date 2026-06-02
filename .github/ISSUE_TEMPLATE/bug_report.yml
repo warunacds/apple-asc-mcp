@@ -1,0 +1,49 @@
+name: Bug report
+description: A tool call fails, returns the wrong thing, or sends the wrong shape to Apple.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for filing! Most bugs here are **wrong request shapes** — a tool sends something Apple's
+        API rejects. The single most useful thing you can attach is the **JSON:API error body** Apple
+        returned (it pins down the exact field). See the log location below.
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: "`appstore-connect-mcp --version` or the npm version installed."
+      placeholder: "0.2.0"
+    validations:
+      required: true
+  - type: input
+    id: tool
+    attributes:
+      label: Tool
+      description: Which `asc_*` / `xc_*` tool misbehaved?
+      placeholder: "asc_create_win_back_offer"
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you called, what you expected, and what you got.
+    validations:
+      required: true
+  - type: textarea
+    id: error-body
+    attributes:
+      label: JSON:API error body (if Apple returned one)
+      description: >
+        The `errors[]` array from the response — `code`, `title`, `detail`, and the `source.pointer`.
+        Redacted request/response logs live at `~/logs/appstore-connect-mcp/<date>.log`. **Scrub any
+        secrets before pasting.**
+      render: json
+  - type: dropdown
+    id: platform
+    attributes:
+      label: OS
+      options: ["macOS", "Linux", "Windows", "Other"]
+    validations:
+      required: true

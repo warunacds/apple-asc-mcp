@@ -4,6 +4,13 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-06-02
+
+First public release. Grew from 39 tools to **158**, covering nearly the entire App Store Connect API
+surface, and cross-checked every write shape against Apple's OpenAPI spec. The core release/monetization
+paths are live-validated against a real app; the newer domains are spec-confirmed but not yet exercised
+against live Apple traffic.
+
 ### Fixed
 - **OpenAPI cross-check (round-4 audit).** Validated every remaining `[VERIFY]` write shape against the
   App Store Connect OpenAPI spec and corrected the mismatches — cheaper and safer than discovering them
@@ -122,5 +129,6 @@ First publishable cut. The foundation works and the spec coverage is current as 
 - `xc_archive`, `xc_export_ipa`, and `asc_validate_ipa` require macOS with Xcode.
 - Two `[VERIFY]` items from the WWDC 2025 buildUploads spec — the exact `Platform` enum spelling and the full `BuildUploadFile.assetType` enum — are inferred from sibling APIs and may need adjustment when surfaced in real responses.
 
-[Unreleased]: https://github.com/warunacds/appstore-connect-mcp/compare/v0.1.0-alpha.1...HEAD
+[Unreleased]: https://github.com/warunacds/appstore-connect-mcp/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/warunacds/appstore-connect-mcp/compare/v0.1.0-alpha.1...v0.2.0
 [0.1.0-alpha.1]: https://github.com/warunacds/appstore-connect-mcp/releases/tag/v0.1.0-alpha.1
