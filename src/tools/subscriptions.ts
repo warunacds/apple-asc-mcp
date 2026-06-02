@@ -243,7 +243,9 @@ export const setSubscriptionPriceTool = tool({
   description:
     "Set the price of a subscription in a base territory; other territories auto-equalize from it. Provide customerPrice " +
     "(e.g. \"4.99\", resolved to a price point in the base territory) OR an explicit pricePointId from " +
-    "asc_list_subscription_price_points. preserveCurrentPrice keeps existing subscribers on their current price.",
+    "asc_list_subscription_price_points. preserveCurrentPrice keeps existing subscribers on their current price. " +
+    "Prerequisite: the subscription must have availability set first (asc_set_subscription_availability) — without it " +
+    "Apple 409s on the price point. Confirmed working live once availability is set.",
   inputSchema: z.object({
     subscriptionId: z.string(),
     baseTerritory: z.string().default("USA").describe("Territory whose price drives auto-equalization, e.g. USA."),
@@ -271,10 +273,10 @@ export const setSubscriptionPriceTool = tool({
       pricePointId = match.id;
     }
 
-    // Unlike IAPs there is no price-schedule resource — a subscriptionPrice is created directly.
-    // [VERIFY] A live POST returned 409 "error processing the pricing information" on
-    // subscriptionPricePoint/id when a `territory` relationship was also sent — the price point already
-    // encodes its territory, so we omit `territory`. Re-confirm against a live app.
+    // Unlike IAPs there is no price-schedule resource — a subscriptionPrice is created directly with
+    // subscription + subscriptionPricePoint (territory is optional and encoded in the point, so we omit it).
+    // Confirmed working live — but the subscription must have availability set first (asc_set_subscription_
+    // availability); otherwise Apple 409s "error processing the pricing information" on the price point.
     const attributes: Record<string, unknown> = {};
     if (input.preserveCurrentPrice !== undefined) attributes.preserveCurrentPrice = input.preserveCurrentPrice;
     if (input.startDate) attributes.startDate = input.startDate;
