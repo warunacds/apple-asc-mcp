@@ -21,17 +21,27 @@ const PREVIEW_TYPES = [
 ] as const;
 
 /**
- * Screenshot / preview sets hang off a localization. Normally that's an App Store version localization,
- * but a Custom Product Page localization is also a valid parent (same set + upload flow). Resolve which
- * one the caller targeted into the list path + the relationship to send on create.
+ * Screenshot / preview sets hang off a localization. Usually that's an App Store version localization,
+ * but a Custom Product Page localization and a Product-Page-Optimization experiment treatment localization
+ * are equally valid parents (same set + upload flow). Resolve whichever the caller targeted into the
+ * list path + the relationship to send on create.
  */
-function resolveSetParent(input: { localizationId?: string; customProductPageLocalizationId?: string }) {
+type SetParentInput = { localizationId?: string; customProductPageLocalizationId?: string; experimentTreatmentLocalizationId?: string };
+function resolveSetParent(input: SetParentInput) {
   if (input.customProductPageLocalizationId) {
     return {
       base: `/v1/appCustomProductPageLocalizations/${input.customProductPageLocalizationId}`,
       relName: "appCustomProductPageLocalization",
       relType: "appCustomProductPageLocalizations",
       id: input.customProductPageLocalizationId,
+    };
+  }
+  if (input.experimentTreatmentLocalizationId) {
+    return {
+      base: `/v1/appStoreVersionExperimentTreatmentLocalizations/${input.experimentTreatmentLocalizationId}`,
+      relName: "appStoreVersionExperimentTreatmentLocalization",
+      relType: "appStoreVersionExperimentTreatmentLocalizations",
+      id: input.experimentTreatmentLocalizationId,
     };
   }
   return {
@@ -45,10 +55,11 @@ function resolveSetParent(input: { localizationId?: string; customProductPageLoc
 const oneLocalization = z.object({
   localizationId: z.string().optional().describe("An App Store version localization id."),
   customProductPageLocalizationId: z.string().optional().describe("A Custom Product Page localization id — target a CPP variant instead of the default page."),
+  experimentTreatmentLocalizationId: z.string().optional().describe("A Product-Page-Optimization experiment treatment localization id — target a treatment's visuals."),
 });
-const refineOneLocalization = (v: { localizationId?: string; customProductPageLocalizationId?: string }) =>
-  !!v.localizationId !== !!v.customProductPageLocalizationId;
-const oneLocalizationMsg = { message: "Provide exactly one of localizationId or customProductPageLocalizationId." };
+const refineOneLocalization = (v: SetParentInput) =>
+  [v.localizationId, v.customProductPageLocalizationId, v.experimentTreatmentLocalizationId].filter(Boolean).length === 1;
+const oneLocalizationMsg = { message: "Provide exactly one of localizationId, customProductPageLocalizationId, or experimentTreatmentLocalizationId." };
 
 export const listScreenshotSetsTool = tool({
   name: "asc_list_screenshot_sets",

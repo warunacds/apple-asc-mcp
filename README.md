@@ -37,7 +37,7 @@ Claude does the work; you review the result in App Store Connect and tap **Submi
 
 ## What it does
 
-150 MCP tools split across:
+158 MCP tools split across:
 
 - **Discovery** (11) — `asc_whoami`, list/get apps, builds, versions, localizations, categories, territories, plus `asc_release_status`: a one-shot snapshot that tells Claude what's blocking submission.
 - **Build & upload** (5) — `xc_archive`, `xc_export_ipa`, `asc_validate_ipa`, `asc_upload_ipa` (defaults to the new REST `/v1/buildUploads` flow from WWDC 2025; falls back to `xcrun altool` on demand), `asc_wait_for_build_processing`.
@@ -62,6 +62,7 @@ Claude does the work; you review the result in App Store Connect and tap **Submi
 - **Alternative distribution** (5) — EU-DMA distribution keys, packages, and marketplace domains.
 - **In-App Events** (7) — create/list/update/delete time-boxed product-page events, per-locale text, and event card / details-page art (image + video clip). Schedule per territory; submit via `asc_submit_for_review`.
 - **Custom Product Pages** (5) — create/list/get/delete per-audience variant pages with their own promo text and (reusing the screenshot/preview tools) their own visuals.
+- **Product Page Optimization** (8) — A/B experiments: create/list/get/update (start/stop) experiments, add treatments (alternate icon + visuals), per-locale treatment localizations, and delete. Treatment visuals reuse the screenshot/preview tools.
 
 See the [tool reference](#tool-reference) for the full table.
 
@@ -283,11 +284,11 @@ Final blockers beyond version metadata: where the app is sold, and export compli
 | Tool | Required inputs | Purpose |
 |---|---|---|
 | `asc_list_screenshot_sets` | `localizationId` | List sets under a localization |
-| `asc_find_or_create_screenshot_set` | `localizationId` *or* `customProductPageLocalizationId`, `displayType` | Idempotent set get/create (default page or a Custom Product Page) |
+| `asc_find_or_create_screenshot_set` | one of `localizationId` / `customProductPageLocalizationId` / `experimentTreatmentLocalizationId`, + `displayType` | Idempotent set get/create (default page, Custom Product Page, or experiment treatment) |
 | `asc_upload_screenshot` | `setId`, `filePath` | Reservation → multipart PUT → MD5 commit |
 | `asc_delete_screenshot` | `screenshotId` | Remove one screenshot |
 | `asc_reorder_screenshots` | `setId`, `screenshotIds[]` | Change display order |
-| `asc_find_or_create_preview_set` | `localizationId` *or* `customProductPageLocalizationId`, `previewType` | Idempotent video set get/create |
+| `asc_find_or_create_preview_set` | one of `localizationId` / `customProductPageLocalizationId` / `experimentTreatmentLocalizationId`, + `previewType` | Idempotent video set get/create |
 | `asc_upload_preview` | `setId`, `filePath` | Same flow as screenshots, for video |
 
 ### Review submission
@@ -514,6 +515,23 @@ Per-audience variant pages, each with its own URL, promo text, and visuals. Flow
 | `asc_delete_custom_product_page` | `customProductPageId` | Delete a page |
 
 > **Validation status.** Create shapes confirmed against the OpenAPI spec; `territorySchedules` is fully typed. Not yet exercised live — video-clip formats and the exact pre-submission requirements (Apple wants a schedule before an event submits) are the likely first surprises.
+
+### Product Page Optimization (A/B experiments)
+
+Test alternate screenshots/previews/icons against the baseline. Flow: create experiment → add treatment(s) → add a treatment localization → attach that treatment's visuals (the screenshot/preview set tools take `experimentTreatmentLocalizationId`) → `asc_update_experiment` with `started: true`.
+
+| Tool | Required inputs | Purpose |
+|---|---|---|
+| `asc_list_experiments` | `appId` | Experiments (name, state, trafficProportion, dates) |
+| `asc_create_experiment` | `appId`, `name`, `trafficProportion` | Create an experiment (v2, app-level) |
+| `asc_get_experiment` | `experimentId` | Experiment + its treatments |
+| `asc_update_experiment` | `experimentId` | Start (`started: true`) / stop / rename / re-weight |
+| `asc_create_experiment_treatment` | `experimentId`, `name` | Add a variant (+ optional `appIconName`) |
+| `asc_set_experiment_treatment_localization` | `treatmentId`, `locale` | Find/create the localization; its id feeds the screenshot tools |
+| `asc_delete_experiment_treatment` | `treatmentId` | Remove a treatment |
+| `asc_delete_experiment` | `experimentId` | Delete an experiment |
+
+> **Validation status.** Shapes confirmed against the OpenAPI spec (v2 app-level model). Not yet exercised live — the exact gating on `started: true` (treatments must be complete and, if `reviewRequired`, approved first) is the likely first surprise.
 
 ## Troubleshooting
 
