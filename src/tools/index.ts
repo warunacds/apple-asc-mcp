@@ -77,6 +77,11 @@ import {
   listCustomProductPagesTool, createCustomProductPageTool, getCustomProductPageTool,
   setCustomProductPageLocalizationTool, deleteCustomProductPageTool,
 } from "./custom_product_pages.js";
+import {
+  listExperimentsTool, createExperimentTool, getExperimentTool, updateExperimentTool,
+  createExperimentTreatmentTool, setExperimentTreatmentLocalizationTool,
+  deleteExperimentTreatmentTool, deleteExperimentTool,
+} from "./experiments.js";
 
 export const ALL_TOOLS: Tool[] = [
   // Discovery (read-only)
@@ -166,4 +171,9 @@ export const ALL_TOOLS: Tool[] = [
   // Custom Product Pages
   listCustomProductPagesTool, createCustomProductPageTool, getCustomProductPageTool,
   setCustomProductPageLocalizationTool, deleteCustomProductPageTool,
+
+  // Product Page Optimization (A/B experiments)
+  listExperimentsTool, createExperimentTool, getExperimentTool, updateExperimentTool,
+  createExperimentTreatmentTool, setExperimentTreatmentLocalizationTool,
+  deleteExperimentTreatmentTool, deleteExperimentTool,
 ];

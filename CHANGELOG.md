@@ -48,6 +48,15 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
   than shipped broken.
 
 ### Added
+- **Product Page Optimization — A/B experiments** (8 tools) — `asc_list_experiments`, `asc_create_experiment`
+  (v2 app-level: name + platform + `trafficProportion`), `asc_get_experiment` (with its treatments),
+  `asc_update_experiment` (`started: true` launches it; also rename / re-weight / stop), `asc_create_experiment_treatment`
+  (a variant, optional alternate `appIconName`), `asc_set_experiment_treatment_localization` (find-or-create — its id
+  feeds the screenshot tools), `asc_delete_experiment_treatment`, and `asc_delete_experiment`. Submit a review-required
+  experiment via `asc_submit_for_review` with an `{type:"appStoreVersionExperimentV2"}` item.
+- `asc_find_or_create_screenshot_set` / `asc_find_or_create_preview_set` now also accept an
+  `experimentTreatmentLocalizationId`, so experiment-treatment visuals reuse the existing upload flow (joining the
+  default page and Custom Product Page parents — exactly one must be given).
 - **In-App Events** (7 tools) — `asc_list_app_events`, `asc_create_app_event` (referenceName + badge / priority /
   purpose / deepLink), `asc_update_app_event` (sets `territorySchedules` — the per-territory publish/start/end
   windows), `asc_set_app_event_localization` (name + short/long description per locale), `asc_upload_app_event_screenshot`
