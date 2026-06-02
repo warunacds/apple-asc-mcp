@@ -10,13 +10,16 @@ import type { SubscriptionPricePointAttrs } from "../types.js";
  *   that grant a discount to NEW / EXISTING / EXPIRED subscribers.
  * - Win-back offers: surfaced by the App Store to lapsed subscribers (2024+).
  *
- * Not validated against live Apple traffic; shapes inferred and marked [VERIFY] (win-back especially,
- * as the newest/least-documented). If a call 400s, the JSON:API error body pins down the shape.
+ * Write shapes cross-checked against the App Store Connect OpenAPI spec (round-4 audit): offer codes
+ * require `offerEligibility` and a price; win-back offers require customer-eligibility windows + priority.
  */
 
 const OFFER_DURATIONS = ["THREE_DAYS", "ONE_WEEK", "TWO_WEEKS", "ONE_MONTH", "TWO_MONTHS", "THREE_MONTHS", "SIX_MONTHS", "ONE_YEAR"] as const;
 const OFFER_MODES = ["FREE_TRIAL", "PAY_AS_YOU_GO", "PAY_UP_FRONT"] as const;
 const ELIGIBILITIES = ["NEW", "EXISTING", "EXPIRED"] as const;
+const OFFER_ELIGIBILITIES = ["STACK_WITH_INTRO_OFFERS", "REPLACE_INTRO_OFFERS"] as const;
+const WIN_BACK_PRIORITIES = ["HIGH", "NORMAL"] as const;
+const PROMOTION_INTENTS = ["NOT_PROMOTED", "USE_AUTO_GENERATED_ASSETS"] as const;
 
 async function resolvePricePoint(
   client: import("../client.js").AscClient,
@@ -73,13 +76,15 @@ export const listOfferCodesTool = tool({
 export const createOfferCodeTool = tool({
   name: "asc_create_offer_code",
   description:
-    "Create an offer code on a subscription. customerEligibilities chooses who can redeem (NEW / EXISTING / EXPIRED). " +
-    "FREE_TRIAL needs no price; PAY_AS_YOU_GO / PAY_UP_FRONT need customerPrice (resolved in baseTerritory) or pricePointId. " +
+    "Create an offer code on a subscription. customerEligibilities chooses who can redeem (NEW / EXISTING / EXPIRED); " +
+    "offerEligibility says how it interacts with intro offers (STACK_WITH_INTRO_OFFERS / REPLACE_INTRO_OFFERS). " +
+    "A price is always required (the price point the offer is tied to) — pass customerPrice (resolved in baseTerritory) or pricePointId. " +
     "After creating, generate redeemable codes with asc_create_offer_code_custom_codes or asc_create_offer_code_one_time_codes.",
   inputSchema: z.object({
     subscriptionId: z.string(),
     name: z.string().describe("Reference name shown in App Store Connect."),
     customerEligibilities: z.array(z.enum(ELIGIBILITIES)).min(1),
+    offerEligibility: z.enum(OFFER_ELIGIBILITIES).describe("How the offer interacts with introductory offers."),
     offerMode: z.enum(OFFER_MODES),
     duration: z.enum(OFFER_DURATIONS),
     numberOfPeriods: z.number().int().min(1).default(1),
@@ -87,26 +92,23 @@ export const createOfferCodeTool = tool({
     customerPrice: z.string().optional(),
     pricePointId: z.string().optional(),
   }).strict().refine(
-    (v) => v.offerMode === "FREE_TRIAL" || !!v.customerPrice || !!v.pricePointId,
-    { message: "Paid offer codes need customerPrice or pricePointId." },
+    (v) => !!v.customerPrice || !!v.pricePointId,
+    { message: "Offer codes need a price: pass customerPrice or pricePointId." },
   ),
   handler: async (input, { client }) => {
     const attributes: Record<string, unknown> = {
       name: input.name,
       customerEligibilities: input.customerEligibilities,
+      offerEligibility: input.offerEligibility,
       offerMode: input.offerMode,
       duration: input.duration,
       numberOfPeriods: input.numberOfPeriods,
     };
     const relationships: Record<string, unknown> = { subscription: { data: { type: "subscriptions", id: input.subscriptionId } } };
-    const body: { data: Record<string, unknown>; included?: unknown[] } = { data: { type: "subscriptionOfferCodes", attributes, relationships } };
-    if (input.offerMode !== "FREE_TRIAL") {
-      const pricePointId = input.pricePointId ?? (await resolvePricePoint(client, input.subscriptionId, input.baseTerritory, input.customerPrice));
-      // [VERIFY] inline price as subscriptionOfferCodePrices via placeholder id.
-      const p = inlinePrice(pricePointId, input.baseTerritory, "subscriptionOfferCodePrices", "${offer-code-price-1}");
-      relationships.prices = p.rel;
-      body.included = [p.included];
-    }
+    const pricePointId = input.pricePointId ?? (await resolvePricePoint(client, input.subscriptionId, input.baseTerritory, input.customerPrice));
+    const p = inlinePrice(pricePointId, input.baseTerritory, "subscriptionOfferCodePrices", "${offer-code-price-1}");
+    relationships.prices = p.rel;
+    const body = { data: { type: "subscriptionOfferCodes", attributes, relationships }, included: [p.included] };
     const res = await client.post<{ data: { id: string; attributes?: Record<string, unknown> } }>("/v1/subscriptionOfferCodes", body);
     return { ok: true, offerCodeId: res.data.id, ...res.data.attributes };
   },
@@ -145,11 +147,10 @@ export const createOfferCodeOneTimeCodesTool = tool({
   inputSchema: z.object({
     offerCodeId: z.string(),
     numberOfCodes: z.number().int().min(1).max(50000),
-    expirationDate: z.string().optional(),
+    expirationDate: z.string().describe("ISO date the generated codes stop working (required by Apple)."),
   }).strict(),
   handler: async (input, { client }) => {
-    const attributes: Record<string, unknown> = { numberOfCodes: input.numberOfCodes };
-    if (input.expirationDate) attributes.expirationDate = input.expirationDate;
+    const attributes: Record<string, unknown> = { numberOfCodes: input.numberOfCodes, expirationDate: input.expirationDate };
     const res = await client.post<{ data: { id: string } }>("/v1/subscriptionOfferCodeOneTimeUseCodes", {
       data: {
         type: "subscriptionOfferCodeOneTimeUseCodes",
@@ -177,7 +178,8 @@ export const createWinBackOfferTool = tool({
   name: "asc_create_win_back_offer",
   description:
     "Create a win-back offer (shown by the App Store to previously-subscribed, now-lapsed users). offerId is the " +
-    "developer-defined identifier. FREE_TRIAL needs no price; paid modes need customerPrice/pricePointId.",
+    "developer-defined identifier. Apple requires the eligibility window (how long they paid, and how long since they " +
+    "lapsed), a priority, a start date, and a price — pass customerPrice (resolved in baseTerritory) or pricePointId.",
   inputSchema: z.object({
     subscriptionId: z.string(),
     referenceName: z.string(),
@@ -185,14 +187,22 @@ export const createWinBackOfferTool = tool({
     offerMode: z.enum(OFFER_MODES),
     duration: z.enum(OFFER_DURATIONS),
     periodCount: z.number().int().min(1).default(1),
+    priority: z.enum(WIN_BACK_PRIORITIES).describe("HIGH offers are surfaced ahead of NORMAL ones."),
+    customerEligibilityPaidSubscriptionDurationInMonths: z.number().int().min(0)
+      .describe("Minimum months the user must previously have paid to qualify."),
+    timeSinceLastSubscribedMonths: z.object({ minimum: z.number().int().min(0), maximum: z.number().int().min(0) })
+      .describe("Window since the user last subscribed, in months (minimum/maximum)."),
+    customerEligibilityWaitBetweenOffersInMonths: z.number().int().min(0).optional(),
+    promotionIntent: z.enum(PROMOTION_INTENTS).optional()
+      .describe("USE_AUTO_GENERATED_ASSETS lets the App Store promote the offer with generated assets."),
+    startDate: z.string().describe("ISO date the offer becomes available."),
+    endDate: z.string().optional(),
     baseTerritory: z.string().default("USA"),
     customerPrice: z.string().optional(),
     pricePointId: z.string().optional(),
-    startDate: z.string().optional(),
-    endDate: z.string().optional(),
   }).strict().refine(
-    (v) => v.offerMode === "FREE_TRIAL" || !!v.customerPrice || !!v.pricePointId,
-    { message: "Paid win-back offers need customerPrice or pricePointId." },
+    (v) => !!v.customerPrice || !!v.pricePointId,
+    { message: "Win-back offers need a price: pass customerPrice or pricePointId." },
   ),
   handler: async (input, { client }) => {
     const attributes: Record<string, unknown> = {
@@ -201,18 +211,24 @@ export const createWinBackOfferTool = tool({
       offerMode: input.offerMode,
       duration: input.duration,
       periodCount: input.periodCount,
+      priority: input.priority,
+      customerEligibilityPaidSubscriptionDurationInMonths: input.customerEligibilityPaidSubscriptionDurationInMonths,
+      customerEligibilityTimeSinceLastSubscribedInMonths: {
+        minimum: input.timeSinceLastSubscribedMonths.minimum,
+        maximum: input.timeSinceLastSubscribedMonths.maximum,
+      },
+      startDate: input.startDate,
     };
-    if (input.startDate) attributes.startDate = input.startDate;
+    if (input.customerEligibilityWaitBetweenOffersInMonths !== undefined) {
+      attributes.customerEligibilityWaitBetweenOffersInMonths = input.customerEligibilityWaitBetweenOffersInMonths;
+    }
+    if (input.promotionIntent) attributes.promotionIntent = input.promotionIntent;
     if (input.endDate) attributes.endDate = input.endDate;
     const relationships: Record<string, unknown> = { subscription: { data: { type: "subscriptions", id: input.subscriptionId } } };
-    const body: { data: Record<string, unknown>; included?: unknown[] } = { data: { type: "winBackOffers", attributes, relationships } };
-    if (input.offerMode !== "FREE_TRIAL") {
-      const pricePointId = input.pricePointId ?? (await resolvePricePoint(client, input.subscriptionId, input.baseTerritory, input.customerPrice));
-      // [VERIFY] win-back offer price shape (winBackOfferPrices) — newest API, least documented.
-      const p = inlinePrice(pricePointId, input.baseTerritory, "winBackOfferPrices", "${win-back-price-1}");
-      relationships.prices = p.rel;
-      body.included = [p.included];
-    }
+    const pricePointId = input.pricePointId ?? (await resolvePricePoint(client, input.subscriptionId, input.baseTerritory, input.customerPrice));
+    const p = inlinePrice(pricePointId, input.baseTerritory, "winBackOfferPrices", "${win-back-price-1}");
+    relationships.prices = p.rel;
+    const body = { data: { type: "winBackOffers", attributes, relationships }, included: [p.included] };
     const res = await client.post<{ data: { id: string; attributes?: Record<string, unknown> } }>("/v1/winBackOffers", body);
     return { ok: true, winBackOfferId: res.data.id, offerId: input.offerId, ...res.data.attributes };
   },

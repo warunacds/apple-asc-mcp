@@ -11,8 +11,8 @@ import type { SubscriptionPricePointAttrs, SubscriptionPromotionalOfferAttrs } f
  * pinned to a subscriptionPricePoint). Prices are created inline with the offer via the placeholder-id
  * pattern, the same shape as the IAP/subscription price tools.
  *
- * Not validated against live Apple traffic; attribute and relationship shapes are inferred and marked
- * [VERIFY]. If a call 400s, the JSON:API error body pins down the exact shape.
+ * Write shapes cross-checked against the App Store Connect OpenAPI spec (round-4 audit): the create
+ * request requires at least one inline price (`prices`), regardless of offer mode.
  */
 
 const OFFER_DURATIONS = ["THREE_DAYS", "ONE_WEEK", "TWO_WEEKS", "ONE_MONTH", "TWO_MONTHS", "THREE_MONTHS", "SIX_MONTHS", "ONE_YEAR"] as const;
@@ -58,8 +58,8 @@ export const createPromotionalOfferTool = tool({
   name: "asc_create_promotional_offer",
   description:
     "Create a promotional offer on a subscription. offerCode is the developer-defined id StoreKit references at " +
-    "purchase. FREE_TRIAL needs no price; PAY_AS_YOU_GO / PAY_UP_FRONT need a discounted price — pass customerPrice " +
-    "(resolved in baseTerritory) or an explicit pricePointId. Add prices for more territories with " +
+    "purchase. A price is always required (even for FREE_TRIAL — it pins the price point the offer is tied to): pass " +
+    "customerPrice (resolved in baseTerritory) or an explicit pricePointId. Add prices for more territories with " +
     "asc_add_promotional_offer_price.",
   inputSchema: z.object({
     subscriptionId: z.string(),
@@ -69,11 +69,11 @@ export const createPromotionalOfferTool = tool({
     duration: z.enum(OFFER_DURATIONS).describe("Length of one offer period, e.g. ONE_MONTH."),
     numberOfPeriods: z.number().int().min(1).default(1),
     baseTerritory: z.string().default("USA").describe("Territory the price is set in, e.g. USA."),
-    customerPrice: z.string().optional().describe("Discounted price in the base territory, e.g. \"1.99\". Required for paid modes unless pricePointId is given."),
+    customerPrice: z.string().optional().describe("Price in the base territory, e.g. \"1.99\" (\"0.00\" for a free trial). Required unless pricePointId is given."),
     pricePointId: z.string().optional().describe("Explicit subscriptionPricePoint id (from asc_list_subscription_price_points). Takes precedence over customerPrice."),
   }).strict().refine(
-    (v) => v.offerMode === "FREE_TRIAL" || !!v.customerPrice || !!v.pricePointId,
-    { message: "Paid promotional offers (PAY_AS_YOU_GO / PAY_UP_FRONT) need customerPrice or pricePointId." },
+    (v) => !!v.customerPrice || !!v.pricePointId,
+    { message: "Promotional offers need a price: pass customerPrice or pricePointId." },
   ),
   handler: async (input, { client }) => {
     const attributes: Record<string, unknown> = {
@@ -86,17 +86,15 @@ export const createPromotionalOfferTool = tool({
     const relationships: Record<string, unknown> = {
       subscription: { data: { type: "subscriptions", id: input.subscriptionId } },
     };
-    const body: { data: Record<string, unknown>; included?: unknown[] } = {
-      data: { type: "subscriptionPromotionalOffers", attributes, relationships },
-    };
 
-    // [VERIFY] paid offers carry a price per territory (subscriptionPromotionalOfferPrices) created
-    // inline via a placeholder id; FREE_TRIAL carries none.
-    if (input.offerMode !== "FREE_TRIAL") {
-      const pricePointId = input.pricePointId ?? (await resolvePricePoint(client, input.subscriptionId, input.baseTerritory, input.customerPrice));
-      const priceLid = "${promo-price-1}";
-      relationships.prices = { data: [{ type: "subscriptionPromotionalOfferPrices", id: priceLid }] };
-      body.included = [
+    // The create request requires at least one inline price (subscriptionPromotionalOfferPrices),
+    // created via a placeholder id — for every mode, including FREE_TRIAL.
+    const pricePointId = input.pricePointId ?? (await resolvePricePoint(client, input.subscriptionId, input.baseTerritory, input.customerPrice));
+    const priceLid = "${promo-price-1}";
+    relationships.prices = { data: [{ type: "subscriptionPromotionalOfferPrices", id: priceLid }] };
+    const body = {
+      data: { type: "subscriptionPromotionalOffers", attributes, relationships },
+      included: [
         {
           type: "subscriptionPromotionalOfferPrices",
           id: priceLid,
@@ -105,8 +103,8 @@ export const createPromotionalOfferTool = tool({
             territory: { data: { type: "territories", id: input.baseTerritory } },
           },
         },
-      ];
-    }
+      ],
+    };
 
     const res = await client.post<{ data: { id: string; attributes?: SubscriptionPromotionalOfferAttrs } }>("/v1/subscriptionPromotionalOffers", body);
     return { ok: true, promotionalOfferId: res.data.id, offerCode: input.offerCode, ...res.data.attributes };

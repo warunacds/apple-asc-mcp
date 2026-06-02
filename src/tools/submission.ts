@@ -5,7 +5,8 @@ import { tool } from "./registry.js";
  * Submission-gate extras beyond version metadata: app territory availability (where the app is sold)
  * and export-compliance encryption declarations.
  *
- * Not validated against live Apple traffic; endpoint/shape details inferred and marked [VERIFY].
+ * Write shapes cross-checked against the App Store Connect OpenAPI spec (round-4 audit): app availability
+ * inlines `territoryAvailabilities` resources; the encryption declaration is appDescription + two crypto flags.
  */
 
 // ── App availability (which territories the app is sold in) ──────────────────
@@ -44,17 +45,25 @@ export const setAppAvailabilityTool = tool({
       const all = await client.list("/v1/territories", { limit: 200 });
       territoryIds = all.map((t) => t.id);
     }
-    // [VERIFY] the GET relationship is `territoryAvailabilities` (confirmed live); the v2 POST shape is
-    // still unconfirmed — it may require inline territoryAvailability objects rather than plain territory refs.
+    // The v2 shape (per the OpenAPI spec) is NOT plain territory refs: `territoryAvailabilities` references
+    // inline `territoryAvailabilities` resources, each carrying `available` + its own `territory` relationship.
+    // Build them inline via placeholder ids, the same way price schedules inline their appPrices.
+    const included = (territoryIds ?? []).map((tid, i) => ({
+      type: "territoryAvailabilities",
+      id: "${territory-availability-" + i + "}",
+      attributes: { available: true },
+      relationships: { territory: { data: { type: "territories", id: tid } } },
+    }));
     const res = await client.post<{ data: { id: string } }>("/v2/appAvailabilities", {
       data: {
         type: "appAvailabilities",
         attributes: { availableInNewTerritories: input.availableInNewTerritories },
         relationships: {
           app: { data: { type: "apps", id: input.appId } },
-          territoryAvailabilities: { data: (territoryIds ?? []).map((id) => ({ type: "territories", id })) },
+          territoryAvailabilities: { data: included.map((ta) => ({ type: ta.type, id: ta.id })) },
         },
       },
+      included,
     });
     return { ok: true, availabilityId: res.data.id, territories: territoryIds, availableInNewTerritories: input.availableInNewTerritories };
   },
@@ -64,10 +73,10 @@ export const setAppAvailabilityTool = tool({
 
 export const listEncryptionDeclarationsTool = tool({
   name: "asc_list_encryption_declarations",
-  description: "List the app's export-compliance encryption declarations (id, state, and the usesEncryption/exempt flags).",
+  description: "List the app's export-compliance encryption declarations (id, state, appDescription, and the cryptography flags).",
   inputSchema: z.object({ appId: z.string() }).strict(),
   handler: async (input, { client }) => {
-    // [VERIFY] `sort` is rejected on this endpoint (confirmed live) — omit it.
+    // `sort` is rejected on this endpoint (confirmed live) — omit it.
     const decls = await client.list(`/v1/appEncryptionDeclarations`, {
       "filter[app]": input.appId,
       limit: 50,
@@ -79,23 +88,24 @@ export const listEncryptionDeclarationsTool = tool({
 export const createEncryptionDeclarationTool = tool({
   name: "asc_create_encryption_declaration",
   description:
-    "Create an export-compliance encryption declaration. Most apps that only use standard/exempt encryption (HTTPS) " +
-    "set usesEncryption=true + exempt=true. Apps using non-exempt encryption may need to provide export documents " +
-    "in App Store Connect. Attach the result to a build with asc_assign_encryption_declaration.",
+    "Create an export-compliance encryption declaration. The questionnaire is two yes/no questions plus a description: " +
+    "an app that only uses standard OS/HTTPS encryption answers false to both containsProprietaryCryptography and " +
+    "containsThirdPartyCryptography (that's the exempt case). availableOnFrenchStore must reflect French distribution. " +
+    "Attach the result to a build with asc_assign_encryption_declaration.",
   inputSchema: z.object({
     appId: z.string(),
-    usesEncryption: z.boolean(),
-    exempt: z.boolean().optional().describe("True if the encryption qualifies for an export exemption (e.g. standard HTTPS)."),
-    containsProprietaryCryptography: z.boolean().optional(),
-    containsThirdPartyCryptography: z.boolean().optional(),
-    availableOnFrenchStore: z.boolean().optional().describe("Required by French export law if distributing in France."),
-    platform: z.enum(["IOS", "MAC_OS", "TV_OS", "VISION_OS"]).optional(),
+    appDescription: z.string().describe("Short description of how the app uses encryption (Apple requires this)."),
+    containsProprietaryCryptography: z.boolean().describe("True if the app implements its own/proprietary encryption algorithms."),
+    containsThirdPartyCryptography: z.boolean().describe("True if the app uses third-party encryption beyond the OS standard libraries."),
+    availableOnFrenchStore: z.boolean().describe("Whether the app is distributed on the French App Store (French export law)."),
   }).strict(),
   handler: async (input, { client }) => {
-    const attributes: Record<string, unknown> = { usesEncryption: input.usesEncryption };
-    for (const k of ["exempt", "containsProprietaryCryptography", "containsThirdPartyCryptography", "availableOnFrenchStore", "platform"] as const) {
-      if (input[k] !== undefined) attributes[k] = input[k];
-    }
+    const attributes = {
+      appDescription: input.appDescription,
+      containsProprietaryCryptography: input.containsProprietaryCryptography,
+      containsThirdPartyCryptography: input.containsThirdPartyCryptography,
+      availableOnFrenchStore: input.availableOnFrenchStore,
+    };
     const res = await client.post<{ data: { id: string; attributes?: Record<string, unknown> } }>("/v1/appEncryptionDeclarations", {
       data: { type: "appEncryptionDeclarations", attributes, relationships: { app: { data: { type: "apps", id: input.appId } } } },
     });

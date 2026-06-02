@@ -2,8 +2,8 @@ import { z } from "zod";
 import { tool } from "./registry.js";
 
 /**
- * App Store Connect webhooks (2024+): subscribe an HTTPS endpoint to app events. Not validated
- * against live Apple traffic; the eventType values and delivery shape are inferred and marked [VERIFY].
+ * App Store Connect webhooks (2024+): subscribe an HTTPS endpoint to app events. Create-request shape
+ * confirmed against the OpenAPI spec — all of name/url/eventTypes/secret/enabled are required.
  */
 
 export const listWebhooksTool = tool({
@@ -23,19 +23,18 @@ export const createWebhookTool = tool({
   name: "asc_create_webhook",
   description:
     "Create a webhook for an app. url must be HTTPS; eventTypes is the list of events to subscribe to (e.g. " +
-    "APP_STORE_VERSION_APP_VERSION_STATE_UPDATED, BUILD_PROCESSING_COMPLETED — [VERIFY] the exact values). secret " +
-    "is used to sign deliveries.",
+    "APP_STORE_VERSION_APP_VERSION_STATE_UPDATED, APP_STORE_VERSION_STATE_UPDATED). secret is required — Apple uses " +
+    "it to sign each delivery so you can verify authenticity.",
   inputSchema: z.object({
     appId: z.string(),
     name: z.string(),
     url: z.string().url(),
     eventTypes: z.array(z.string()).min(1).describe("Event type identifiers to subscribe to."),
-    secret: z.string().optional().describe("Signing secret for delivery verification."),
+    secret: z.string().describe("Signing secret Apple uses to sign deliveries (required)."),
     enabled: z.boolean().default(true),
   }).strict(),
   handler: async (input, { client }) => {
-    const attributes: Record<string, unknown> = { name: input.name, url: input.url, eventTypes: input.eventTypes, enabled: input.enabled };
-    if (input.secret) attributes.secret = input.secret;
+    const attributes: Record<string, unknown> = { name: input.name, url: input.url, eventTypes: input.eventTypes, secret: input.secret, enabled: input.enabled };
     const res = await client.post<{ data: { id: string; attributes?: Record<string, unknown> } }>("/v1/webhooks", {
       data: { type: "webhooks", attributes, relationships: { app: { data: { type: "apps", id: input.appId } } } },
     });

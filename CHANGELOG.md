@@ -5,6 +5,30 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 ## [Unreleased]
 
 ### Fixed
+- **OpenAPI cross-check (round-4 audit).** Validated every remaining `[VERIFY]` write shape against the
+  App Store Connect OpenAPI spec and corrected the mismatches — cheaper and safer than discovering them
+  via live 400s:
+  - `asc_create_encryption_declaration` — used the wrong attributes (`usesEncryption`/`exempt`/`platform`,
+    none of which exist). The real `appEncryptionDeclarations` create is `appDescription` plus the
+    `containsProprietaryCryptography` / `containsThirdPartyCryptography` / `availableOnFrenchStore` booleans
+    (all required); HTTPS-only apps answer false to both crypto flags.
+  - `asc_set_app_availability` — the v2 `territoryAvailabilities` relationship references inline
+    `territoryAvailabilities` resources (each carrying its own `territory` + `available`), not plain
+    `territories` refs. Now built with the placeholder-id inline pattern.
+  - `asc_create_webhook` — `secret` is required (Apple signs every delivery with it).
+  - `asc_create_offer_code` — added the required `offerEligibility`
+    (`STACK_WITH_INTRO_OFFERS` / `REPLACE_INTRO_OFFERS`) and a required price for every mode.
+  - `asc_create_offer_code_one_time_codes` — `expirationDate` is required.
+  - `asc_create_promotional_offer` — a price is required for every mode (previously skipped for FREE_TRIAL).
+  - `asc_create_win_back_offer` — added the required customer-eligibility window
+    (`customerEligibilityPaidSubscriptionDurationInMonths` + a `timeSinceLastSubscribedMonths`
+    minimum/maximum range), `priority` (HIGH/NORMAL), and `startDate`, plus optional `promotionIntent`.
+  - `asc_create_leaderboard` — uses `scoreSortType` (ASC/DESC), not a `sortAscending` boolean;
+    `defaultFormatter` is now a validated enum.
+  - `asc_create_achievement` — `showBeforeEarned` and `repeatable` are required (now always sent).
+  - `asc_set_age_rating` — added the 2024–25 questionnaire fields as typed inputs (`gunsOrOtherWeapons`,
+    `advertising`, `healthOrWellnessTopics`, `lootBox`, `messagingAndChat`, `parentalControls`,
+    `ageAssurance`, `userGeneratedContent`) instead of relying on the `additionalDeclarations` escape hatch.
 - First live run against a real App Store Connect app surfaced and corrected several `[VERIFY]` issues:
   `asc_get_app_availability` (relationship is `territoryAvailabilities`, not `availableTerritories`),
   `asc_list_encryption_declarations` (drop the unsupported `sort`), `asc_get_game_center_detail`

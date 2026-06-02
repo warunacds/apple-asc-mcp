@@ -4,7 +4,8 @@ import { tool } from "./registry.js";
 /**
  * Game Center: per-app detail, achievements, and leaderboards (with per-locale text). Scoped to the
  * core create/list operations; groups, leaderboard sets, images, and challenges are out of scope for
- * now. Not validated against live Apple traffic; shapes inferred and marked [VERIFY].
+ * now. Create shapes cross-checked against the OpenAPI spec (round-4 audit): achievements require
+ * showBeforeEarned + repeatable; leaderboards use scoreSortType (ASC/DESC), not a sortAscending boolean.
  */
 
 export const getGameCenterDetailTool = tool({
@@ -37,23 +38,24 @@ export const createAchievementTool = tool({
   name: "asc_create_achievement",
   description:
     "Create a Game Center achievement. vendorIdentifier is your developer-defined id; points 0–100 (≤1000 total per app). " +
+    "showBeforeEarned controls whether players see it before unlocking; repeatable lets it be earned more than once. " +
     "Add per-locale text with asc_set_achievement_localization.",
   inputSchema: z.object({
     gameCenterDetailId: z.string(),
     referenceName: z.string(),
     vendorIdentifier: z.string(),
     points: z.number().int().min(0).max(100),
-    showBeforeEarned: z.boolean().optional(),
-    repeatable: z.boolean().optional(),
+    showBeforeEarned: z.boolean().default(true).describe("Whether the achievement is visible to players before it's earned."),
+    repeatable: z.boolean().default(false).describe("Whether the achievement can be earned more than once."),
   }).strict(),
   handler: async (input, { client }) => {
-    const attributes: Record<string, unknown> = {
+    const attributes = {
       referenceName: input.referenceName,
       vendorIdentifier: input.vendorIdentifier,
       points: input.points,
+      showBeforeEarned: input.showBeforeEarned,
+      repeatable: input.repeatable,
     };
-    if (input.showBeforeEarned !== undefined) attributes.showBeforeEarned = input.showBeforeEarned;
-    if (input.repeatable !== undefined) attributes.repeatable = input.repeatable;
     const res = await client.post<{ data: { id: string; attributes?: Record<string, unknown> } }>("/v1/gameCenterAchievements", {
       data: { type: "gameCenterAchievements", attributes, relationships: { gameCenterDetail: { data: { type: "gameCenterDetails", id: input.gameCenterDetailId } } } },
     });
@@ -85,7 +87,7 @@ export const setAchievementLocalizationTool = tool({
 
 export const listLeaderboardsTool = tool({
   name: "asc_list_leaderboards",
-  description: "List Game Center leaderboards under a gameCenterDetail (referenceName, vendorIdentifier, submissionType, sortAscending).",
+  description: "List Game Center leaderboards under a gameCenterDetail (referenceName, vendorIdentifier, submissionType, scoreSortType).",
   inputSchema: z.object({
     gameCenterDetailId: z.string(),
     limit: z.number().int().min(1).max(200).default(100).optional(),
@@ -93,7 +95,7 @@ export const listLeaderboardsTool = tool({
   handler: async (input, { client }) => {
     const items = await client.list(`/v1/gameCenterDetails/${input.gameCenterDetailId}/gameCenterLeaderboards`, {
       limit: input.limit ?? 100,
-      "fields[gameCenterLeaderboards]": "referenceName,vendorIdentifier,submissionType,sortAscending,defaultFormatter,archived",
+      "fields[gameCenterLeaderboards]": "referenceName,vendorIdentifier,submissionType,scoreSortType,defaultFormatter,archived",
     });
     return items.map((l) => ({ id: l.id, ...l.attributes }));
   },
@@ -102,16 +104,22 @@ export const listLeaderboardsTool = tool({
 export const createLeaderboardTool = tool({
   name: "asc_create_leaderboard",
   description:
-    "Create a Game Center leaderboard. submissionType BEST_SCORE or MOST_RECENT_SCORE; sortAscending=true for " +
-    "lower-is-better. defaultFormatter controls score display (e.g. INTEGER, ELAPSED_TIME_MILLISECOND). Add per-locale " +
-    "names with asc_set_leaderboard_localization.",
+    "Create a Game Center leaderboard. submissionType BEST_SCORE or MOST_RECENT_SCORE; scoreSortType DESC for " +
+    "higher-is-better (default) or ASC for lower-is-better. defaultFormatter controls score display (e.g. INTEGER, " +
+    "ELAPSED_TIME_SECOND, MONEY_DOLLAR). Add per-locale names with asc_set_leaderboard_localization.",
   inputSchema: z.object({
     gameCenterDetailId: z.string(),
     referenceName: z.string(),
     vendorIdentifier: z.string(),
     submissionType: z.enum(["BEST_SCORE", "MOST_RECENT_SCORE"]).default("BEST_SCORE"),
-    sortAscending: z.boolean().default(false),
-    defaultFormatter: z.string().default("INTEGER").describe("Score formatter, e.g. INTEGER, DECIMAL_POINT_*, ELAPSED_TIME_*."),
+    scoreSortType: z.enum(["ASC", "DESC"]).default("DESC").describe("DESC = higher score ranks first; ASC = lower score ranks first."),
+    defaultFormatter: z.enum([
+      "INTEGER", "DECIMAL_POINT_1_PLACE", "DECIMAL_POINT_2_PLACE", "DECIMAL_POINT_3_PLACE",
+      "ELAPSED_TIME_CENTISECOND", "ELAPSED_TIME_MINUTE", "ELAPSED_TIME_SECOND",
+      "MONEY_POUND_DECIMAL", "MONEY_POUND", "MONEY_DOLLAR_DECIMAL", "MONEY_DOLLAR",
+      "MONEY_EURO_DECIMAL", "MONEY_EURO", "MONEY_FRANC_DECIMAL", "MONEY_FRANC",
+      "MONEY_KRONER_DECIMAL", "MONEY_KRONER", "MONEY_YEN",
+    ]).default("INTEGER").describe("How the score is displayed."),
   }).strict(),
   handler: async (input, { client }) => {
     const res = await client.post<{ data: { id: string; attributes?: Record<string, unknown> } }>("/v1/gameCenterLeaderboards", {
@@ -121,7 +129,7 @@ export const createLeaderboardTool = tool({
           referenceName: input.referenceName,
           vendorIdentifier: input.vendorIdentifier,
           submissionType: input.submissionType,
-          sortAscending: input.sortAscending,
+          scoreSortType: input.scoreSortType,
           defaultFormatter: input.defaultFormatter,
         },
         relationships: { gameCenterDetail: { data: { type: "gameCenterDetails", id: input.gameCenterDetailId } } },
