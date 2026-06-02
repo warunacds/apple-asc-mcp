@@ -47,7 +47,7 @@ jobs:
             | (node dist/index.js 2>/dev/null & PID=$!; sleep 1.5; kill $PID 2>/dev/null; wait $PID 2>/dev/null) )
           echo "$OUT" | head -c 200
           echo
-          echo "$OUT" | grep -q '"name":"app-store-connect-mcp"' || (echo "initialize response missing"; exit 1)
+          echo "$OUT" | grep -q '"name":"apple-asc-mcp"' || (echo "initialize response missing"; exit 1)
           echo "$OUT" | grep -q '"asc_whoami"' || (echo "tools/list missing asc_whoami"; exit 1)
           # Sanity: at least 30 tools registered.
           COUNT=$(echo "$OUT" | grep -o '"name":"asc_\|"name":"xc_' | wc -l | tr -d ' ')

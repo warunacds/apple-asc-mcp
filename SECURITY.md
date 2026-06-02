@@ -4,7 +4,7 @@
 
 Please **do not** open a public issue for security problems.
 
-Report privately via [GitHub's "Report a vulnerability"](https://github.com/warunacds/app-store-connect-mcp/security/advisories/new)
+Report privately via [GitHub's "Report a vulnerability"](https://github.com/warunacds/apple-asc-mcp/security/advisories/new)
 (Security → Advisories on the repo), or email **warunacds@gmail.com** with `SECURITY` in the subject.
 
 Include enough to reproduce: affected version, the call or code path, and the impact. You'll get an

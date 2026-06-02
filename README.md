@@ -1,7 +1,7 @@
-# app-store-connect-mcp
+# apple-asc-mcp
 
-[![CI](https://github.com/warunacds/app-store-connect-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/warunacds/app-store-connect-mcp/actions/workflows/ci.yml)
-[![npm version](https://img.shields.io/npm/v/app-store-connect-mcp.svg)](https://www.npmjs.com/package/app-store-connect-mcp)
+[![CI](https://github.com/warunacds/apple-asc-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/warunacds/apple-asc-mcp/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/apple-asc-mcp.svg)](https://www.npmjs.com/package/apple-asc-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Node ≥20](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](https://nodejs.org)
 
@@ -83,9 +83,9 @@ Requires **Node 20+**. macOS 13+ with Xcode is needed for the build/archive tool
 
 ```bash
 # 1. Install
-npm install -g app-store-connect-mcp
+npm install -g apple-asc-mcp
 # or use it without installing:
-# npx app-store-connect-mcp --diagnose
+# npx apple-asc-mcp --diagnose
 
 # 2. Set credentials (see Apple setup walkthrough below)
 export APP_STORE_CONNECT_KEY_ID=ABCDEFGHIJ
@@ -93,10 +93,10 @@ export APP_STORE_CONNECT_ISSUER_ID=11111111-2222-3333-4444-555555555555
 export APP_STORE_CONNECT_PRIVATE_KEY_PATH=~/.appstoreconnect/private_keys/AuthKey_ABCDEFGHIJ.p8
 
 # 3. Verify your setup
-app-store-connect-mcp --diagnose
+apple-asc-mcp --diagnose
 
 # 4. Wire into Claude Code
-claude mcp add app-store-connect-mcp -- app-store-connect-mcp
+claude mcp add apple-asc-mcp -- apple-asc-mcp
 ```
 
 That's it. In Claude Code:
@@ -131,7 +131,7 @@ chmod 600 ~/.appstoreconnect/private_keys/*.p8
 ### Verify
 
 ```bash
-app-store-connect-mcp --diagnose
+apple-asc-mcp --diagnose
 ```
 
 You should see all checks pass. If anything fails, the diagnose output names the file/env var to fix.
@@ -158,7 +158,7 @@ If neither path nor inline PEM is set, the server looks in altool's canonical lo
 ## Wire into Claude Code
 
 ```bash
-claude mcp add app-store-connect-mcp -- app-store-connect-mcp
+claude mcp add apple-asc-mcp -- apple-asc-mcp
 ```
 
 …or add it to `~/.claude.json` directly:
@@ -166,8 +166,8 @@ claude mcp add app-store-connect-mcp -- app-store-connect-mcp
 ```json
 {
   "mcpServers": {
-    "app-store-connect-mcp": {
-      "command": "app-store-connect-mcp",
+    "apple-asc-mcp": {
+      "command": "apple-asc-mcp",
       "env": {
         "APP_STORE_CONNECT_KEY_ID": "ABCDEFGHIJ",
         "APP_STORE_CONNECT_ISSUER_ID": "11111111-2222-3333-4444-555555555555",
@@ -565,7 +565,7 @@ Test alternate screenshots/previews/icons against the baseline. Flow: create exp
 
 ## Troubleshooting
 
-Run `app-store-connect-mcp --diagnose` first — it diagnoses about 80% of setup issues directly.
+Run `apple-asc-mcp --diagnose` first — it diagnoses about 80% of setup issues directly.
 
 ### Authentication errors
 
@@ -615,7 +615,7 @@ Means the previous version is still in flight (e.g. `IN_REVIEW`). You can't crea
 
 ### Logs
 
-Detailed request/response logs (with secrets redacted) live at `~/logs/app-store-connect-mcp/<date>.log`. Attaching the relevant slice to a bug report is the single most useful thing you can do.
+Detailed request/response logs (with secrets redacted) live at `~/logs/apple-asc-mcp/<date>.log`. Attaching the relevant slice to a bug report is the single most useful thing you can do.
 
 ## Security & secret handling
 
@@ -673,8 +673,8 @@ Out of scope for v1 (will probably ship in v2):
 ## Development
 
 ```bash
-git clone https://github.com/warunacds/app-store-connect-mcp
-cd app-store-connect-mcp
+git clone https://github.com/warunacds/apple-asc-mcp
+cd apple-asc-mcp
 npm install
 
 npm run build       # tsc → dist/
@@ -684,7 +684,7 @@ npm test            # node --test --import tsx
 npm run diagnose    # run the preflight against your env
 ```
 
-Logs at `~/logs/app-store-connect-mcp/<date>.log` (mirrored to stderr).
+Logs at `~/logs/apple-asc-mcp/<date>.log` (mirrored to stderr).
 
 ### Layout
 
@@ -697,7 +697,7 @@ src/
   upload.ts         Asset reservation runner: chunked PUT + MD5 (used for screenshots, previews, builds)
   xcode.ts          xcodebuild & altool subprocess wrappers
   config.ts         Env + .p8 loader
-  log.ts            Logs to stderr + ~/logs/app-store-connect-mcp/
+  log.ts            Logs to stderr + ~/logs/apple-asc-mcp/
   tools/            One file per tool family; all flow into tools/index.ts → ALL_TOOLS
 test/               node:test against in-process mock servers (no real Apple traffic)
 research/           Reference docs from the design phase
@@ -708,7 +708,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the bar for new tools and tests.
 
 ## License
 
-[MIT](LICENSE) © 2026 app-store-connect-mcp contributors
+[MIT](LICENSE) © 2026 apple-asc-mcp contributors
 
 ## Sources
 

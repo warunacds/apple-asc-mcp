@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 /**
- * app-store-connect-mcp — Model Context Protocol server that lets Claude drive
+ * apple-asc-mcp — Model Context Protocol server that lets Claude drive
  * App Store Connect end-to-end (build, upload, metadata, screenshots, submit).
  *
  * Transport: stdio. Wire it into Claude Code via:
- *   claude mcp add app-store-connect-mcp -- node /path/to/dist/index.js
+ *   claude mcp add apple-asc-mcp -- node /path/to/dist/index.js
  *
  * `--diagnose` runs a credential / Xcode preflight and exits without starting MCP.
  *
- * All output to stdout is the MCP protocol; logs go to stderr and ~/logs/app-store-connect-mcp/.
+ * All output to stdout is the MCP protocol; logs go to stderr and ~/logs/apple-asc-mcp/.
  */
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -33,7 +33,7 @@ import { runDiagnose } from "./diagnose.js";
 const VERSION: string = JSON.parse(
   readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "package.json"), "utf8"),
 ).version;
-const SERVER_NAME = "app-store-connect-mcp";
+const SERVER_NAME = "apple-asc-mcp";
 
 async function main() {
   const argv = process.argv.slice(2);
@@ -50,7 +50,7 @@ async function main() {
     process.exit(0);
   }
 
-  log.info("app-store-connect-mcp starting", { pid: process.pid, node: process.version });
+  log.info("apple-asc-mcp starting", { pid: process.pid, node: process.version });
 
   // Lazy: don't fail startup if creds are missing — let `asc_whoami` surface the error
   // when first called. This lets the server boot in environments where creds aren't yet set.
@@ -94,7 +94,7 @@ async function main() {
       return mcpError(
         `App Store Connect credentials are not configured. ${detail} ` +
         `Set APP_STORE_CONNECT_KEY_ID, APP_STORE_CONNECT_ISSUER_ID, and APP_STORE_CONNECT_PRIVATE_KEY_PATH (or place AuthKey_<KEYID>.p8 under ~/.appstoreconnect/private_keys/). ` +
-        `Run \`app-store-connect-mcp --diagnose\` to debug interactively.`,
+        `Run \`apple-asc-mcp --diagnose\` to debug interactively.`,
       );
     }
 
@@ -124,7 +124,7 @@ async function main() {
 
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  log.info("app-store-connect-mcp ready (stdio)");
+  log.info("apple-asc-mcp ready (stdio)");
 
   // Graceful shutdown — give in-flight tool calls a moment to finish before exit.
   const shutdown = (sig: string) => {
@@ -165,10 +165,10 @@ function redactArgs(args: unknown): unknown {
 }
 
 function usage(): string {
-  return `app-store-connect-mcp — Model Context Protocol server for App Store Connect
+  return `apple-asc-mcp — Model Context Protocol server for App Store Connect
 
 USAGE
-  app-store-connect-mcp [options]
+  apple-asc-mcp [options]
 
 OPTIONS
   --diagnose, -d   Run preflight checks (creds, JWT, API reachability, Xcode) and exit.
@@ -183,10 +183,10 @@ ENVIRONMENT
   APP_STORE_CONNECT_PREFER_REST_UPLOAD  "true" (default) or "false"
 
 EXAMPLES
-  app-store-connect-mcp --diagnose
-  claude mcp add app-store-connect-mcp -- node $(npm root -g)/app-store-connect-mcp/dist/index.js
+  apple-asc-mcp --diagnose
+  claude mcp add apple-asc-mcp -- node $(npm root -g)/apple-asc-mcp/dist/index.js
 
-Logs: ~/logs/app-store-connect-mcp/<date>.log
+Logs: ~/logs/apple-asc-mcp/<date>.log
 `;
 }
 
