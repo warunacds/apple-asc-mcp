@@ -7,13 +7,14 @@ import {
 import {
   listInAppPurchasesTool, getInAppPurchaseTool, createInAppPurchaseTool, setIapLocalizationTool,
   listIapPricePointsTool, setIapPriceTool, setIapAvailabilityTool, uploadIapReviewScreenshotTool,
-  submitIapForReviewTool,
+  submitIapForReviewTool, deleteInAppPurchaseTool,
 } from "./iap.js";
 import {
   listSubscriptionGroupsTool, createSubscriptionGroupTool, setSubscriptionGroupLocalizationTool,
   createSubscriptionTool, getSubscriptionTool, setSubscriptionLocalizationTool,
   listSubscriptionPricePointsTool, setSubscriptionPriceTool, setSubscriptionAvailabilityTool,
   setSubscriptionIntroOfferTool, uploadSubscriptionReviewScreenshotTool, submitSubscriptionForReviewTool,
+  deleteSubscriptionTool, deleteSubscriptionGroupTool,
 } from "./subscriptions.js";
 import {
   createVersionTool, updateVersionTool, attachBuildTool, setVersionLocalizationTool,
@@ -46,7 +47,7 @@ import {
 import { listCustomerReviewsTool, getCustomerReviewTool, respondToReviewTool, deleteReviewResponseTool } from "./reviews_customer.js";
 import {
   listOfferCodesTool, createOfferCodeTool, createOfferCodeCustomCodesTool,
-  createOfferCodeOneTimeCodesTool, listWinBackOffersTool, createWinBackOfferTool,
+  createOfferCodeOneTimeCodesTool, listWinBackOffersTool, createWinBackOfferTool, deleteWinBackOfferTool,
 } from "./offer_codes.js";
 import {
   listWebhooksTool, createWebhookTool, updateWebhookTool, deleteWebhookTool, pingWebhookTool, listWebhookDeliveriesTool,
@@ -102,13 +103,14 @@ export const ALL_TOOLS: Tool[] = [
   // In-App Purchases (v2)
   listInAppPurchasesTool, getInAppPurchaseTool, createInAppPurchaseTool, setIapLocalizationTool,
   listIapPricePointsTool, setIapPriceTool, setIapAvailabilityTool, uploadIapReviewScreenshotTool,
-  submitIapForReviewTool,
+  submitIapForReviewTool, deleteInAppPurchaseTool,
 
   // Auto-renewable subscriptions
   listSubscriptionGroupsTool, createSubscriptionGroupTool, setSubscriptionGroupLocalizationTool,
   createSubscriptionTool, getSubscriptionTool, setSubscriptionLocalizationTool,
   listSubscriptionPricePointsTool, setSubscriptionPriceTool, setSubscriptionAvailabilityTool,
   setSubscriptionIntroOfferTool, uploadSubscriptionReviewScreenshotTool, submitSubscriptionForReviewTool,
+  deleteSubscriptionTool, deleteSubscriptionGroupTool,
 
   // Subscription promotional offers
   listPromotionalOffersTool, createPromotionalOfferTool, addPromotionalOfferPriceTool, deletePromotionalOfferTool,
@@ -127,7 +129,7 @@ export const ALL_TOOLS: Tool[] = [
 
   // Subscription offer codes + win-back offers
   listOfferCodesTool, createOfferCodeTool, createOfferCodeCustomCodesTool,
-  createOfferCodeOneTimeCodesTool, listWinBackOffersTool, createWinBackOfferTool,
+  createOfferCodeOneTimeCodesTool, listWinBackOffersTool, createWinBackOfferTool, deleteWinBackOfferTool,
 
   // Webhooks
   listWebhooksTool, createWebhookTool, updateWebhookTool, deleteWebhookTool, pingWebhookTool, listWebhookDeliveriesTool,

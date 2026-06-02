@@ -8,6 +8,7 @@ import { randomBytes } from "node:crypto";
 import {
   listInAppPurchasesTool, getInAppPurchaseTool, createInAppPurchaseTool, setIapLocalizationTool,
   setIapPriceTool, setIapAvailabilityTool, uploadIapReviewScreenshotTool, submitIapForReviewTool,
+  deleteInAppPurchaseTool,
 } from "../src/tools/iap.ts";
 import type { AscClient } from "../src/client.ts";
 import type { AscConfig } from "../src/config.ts";
@@ -25,6 +26,7 @@ function fakeClient(responses: {
   getOne?: (path: string) => unknown;
   post?: (path: string, body: unknown) => unknown;
   patch?: (path: string, body: unknown) => unknown;
+  del?: (path: string) => unknown;
 }) {
   const calls: Call[] = [];
   const client = {
@@ -33,6 +35,7 @@ function fakeClient(responses: {
     async getOne(path: string) { calls.push({ method: "GETONE", path }); return responses.getOne?.(path) ?? { id: "x", attributes: {} }; },
     async post(path: string, body: unknown) { calls.push({ method: "POST", path, body }); return responses.post?.(path, body) ?? { data: { id: "new", attributes: {} } }; },
     async patch(path: string, body: unknown) { calls.push({ method: "PATCH", path, body }); return responses.patch?.(path, body) ?? { data: { id: "patched", attributes: {} } }; },
+    async delete(path: string) { calls.push({ method: "DELETE", path }); return responses.del?.(path); },
   } as unknown as AscClient;
   return { client, calls };
 }
@@ -250,4 +253,12 @@ test("asc_submit_iap_for_review posts an inAppPurchaseSubmissions with the right
   assert.deepEqual((post.body as any).data.relationships.inAppPurchaseV2.data, { type: "inAppPurchases", id: "iap1" });
   assert.equal(out.submissionId, "isub1");
   assert.equal(out.state, "WAITING_FOR_REVIEW");
+});
+
+test("asc_delete_in_app_purchase DELETEs the v2 resource", async () => {
+  const { client, calls } = fakeClient({});
+  const out = await deleteInAppPurchaseTool.handler(parse(deleteInAppPurchaseTool, { inAppPurchaseId: "iap1" }), { client, config: cfg }) as { deleted: string };
+  const del = calls.find((c) => c.method === "DELETE")!;
+  assert.equal(del.path, "/v2/inAppPurchases/iap1");
+  assert.equal(out.deleted, "iap1");
 });

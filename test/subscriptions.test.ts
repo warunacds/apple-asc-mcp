@@ -10,6 +10,7 @@ import {
   createSubscriptionTool, getSubscriptionTool, setSubscriptionLocalizationTool,
   listSubscriptionPricePointsTool, setSubscriptionPriceTool, setSubscriptionAvailabilityTool,
   setSubscriptionIntroOfferTool, uploadSubscriptionReviewScreenshotTool, submitSubscriptionForReviewTool,
+  deleteSubscriptionTool, deleteSubscriptionGroupTool,
 } from "../src/tools/subscriptions.ts";
 import type { AscClient } from "../src/client.ts";
 import type { AscConfig } from "../src/config.ts";
@@ -26,6 +27,7 @@ function fakeClient(responses: {
   getOne?: (path: string) => unknown;
   post?: (path: string, body: unknown) => unknown;
   patch?: (path: string, body: unknown) => unknown;
+  del?: (path: string) => unknown;
 }) {
   const calls: Call[] = [];
   const client = {
@@ -34,6 +36,7 @@ function fakeClient(responses: {
     async getOne(path: string) { calls.push({ method: "GETONE", path }); return responses.getOne?.(path) ?? { id: "x", attributes: {} }; },
     async post(path: string, body: unknown) { calls.push({ method: "POST", path, body }); return responses.post?.(path, body) ?? { data: { id: "new", attributes: {} } }; },
     async patch(path: string, body: unknown) { calls.push({ method: "PATCH", path, body }); return responses.patch?.(path, body) ?? { data: { id: "patched", attributes: {} } }; },
+    async delete(path: string) { calls.push({ method: "DELETE", path }); return responses.del?.(path); },
   } as unknown as AscClient;
   return { client, calls };
 }
@@ -293,4 +296,18 @@ test("asc_submit_subscription_for_review posts a group submission", async () => 
   assert.deepEqual((post.body as any).data.relationships.subscriptionGroup.data, { type: "subscriptionGroups", id: "grp1" });
   assert.equal(out.submissionId, "gsub1");
   assert.equal(out.state, "WAITING_FOR_REVIEW");
+});
+
+test("asc_delete_subscription DELETEs the subscription resource", async () => {
+  const { client, calls } = fakeClient({});
+  const out = await deleteSubscriptionTool.handler(parse(deleteSubscriptionTool, { subscriptionId: "sub1" }), { client, config: cfg }) as { deleted: string };
+  assert.equal(calls.find((c) => c.method === "DELETE")!.path, "/v1/subscriptions/sub1");
+  assert.equal(out.deleted, "sub1");
+});
+
+test("asc_delete_subscription_group DELETEs the group resource", async () => {
+  const { client, calls } = fakeClient({});
+  const out = await deleteSubscriptionGroupTool.handler(parse(deleteSubscriptionGroupTool, { subscriptionGroupId: "grp1" }), { client, config: cfg }) as { deleted: string };
+  assert.equal(calls.find((c) => c.method === "DELETE")!.path, "/v1/subscriptionGroups/grp1");
+  assert.equal(out.deleted, "grp1");
 });

@@ -174,6 +174,31 @@ export const getSubscriptionTool = tool({
   },
 });
 
+export const deleteSubscriptionTool = tool({
+  name: "asc_delete_subscription",
+  description:
+    "Permanently delete an auto-renewable subscription (DELETE /v1/subscriptions/{id}). Find the id via the " +
+    "subscriptions on a group (asc_list_subscription_groups → asc_get_subscription). Only works while the " +
+    "subscription is still editable — Apple rejects deletes once it has been approved. This cannot be undone.",
+  inputSchema: z.object({ subscriptionId: z.string() }).strict(),
+  handler: async (input, { client }) => {
+    await client.delete(`/v1/subscriptions/${input.subscriptionId}`);
+    return { ok: true, deleted: input.subscriptionId };
+  },
+});
+
+export const deleteSubscriptionGroupTool = tool({
+  name: "asc_delete_subscription_group",
+  description:
+    "Permanently delete a subscription group (DELETE /v1/subscriptionGroups/{id}). The group must be empty — delete " +
+    "its subscriptions first with asc_delete_subscription. Find the id via asc_list_subscription_groups. Cannot be undone.",
+  inputSchema: z.object({ subscriptionGroupId: z.string() }).strict(),
+  handler: async (input, { client }) => {
+    await client.delete(`/v1/subscriptionGroups/${input.subscriptionGroupId}`);
+    return { ok: true, deleted: input.subscriptionGroupId };
+  },
+});
+
 export const setSubscriptionLocalizationTool = tool({
   name: "asc_set_subscription_localization",
   description:

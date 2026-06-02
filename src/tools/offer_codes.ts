@@ -217,3 +217,15 @@ export const createWinBackOfferTool = tool({
     return { ok: true, winBackOfferId: res.data.id, offerId: input.offerId, ...res.data.attributes };
   },
 });
+
+export const deleteWinBackOfferTool = tool({
+  name: "asc_delete_win_back_offer",
+  description:
+    "Delete a win-back offer by id (DELETE /v1/winBackOffers/{id}). Find ids via asc_list_win_back_offers. " +
+    "Mirrors asc_delete_promotional_offer for the other lapsed-subscriber offer type.",
+  inputSchema: z.object({ winBackOfferId: z.string() }).strict(),
+  handler: async (input, { client }) => {
+    await client.delete(`/v1/winBackOffers/${input.winBackOfferId}`);
+    return { ok: true, deleted: input.winBackOfferId };
+  },
+});
