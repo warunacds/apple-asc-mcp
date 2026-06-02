@@ -16,13 +16,21 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - **Submission gates** — `asc_get_app_availability` / `asc_set_app_availability` (territories the app is sold in) and `asc_list_encryption_declarations` / `asc_create_encryption_declaration` / `asc_assign_encryption_declaration` (export compliance).
 - **Customer reviews** — `asc_list_customer_reviews`, `asc_get_customer_review`, `asc_respond_to_review` (upsert the developer response), and `asc_delete_review_response`.
 - **Subscription offer codes & win-back offers** — `asc_list_offer_codes`, `asc_create_offer_code`, `asc_create_offer_code_custom_codes`, `asc_create_offer_code_one_time_codes`, plus `asc_list_win_back_offers` / `asc_create_win_back_offer`.
+- **Webhooks** — `asc_list_webhooks` / `asc_create_webhook` / `asc_update_webhook` / `asc_delete_webhook`, plus `asc_ping_webhook` and `asc_list_webhook_deliveries`.
+- **Users & access** — `asc_list_users` / `asc_get_user` / `asc_update_user` and `asc_list_user_invitations` / `asc_invite_user` / `asc_cancel_user_invitation` (Admin key required).
+- **Xcode Cloud** — `asc_list_ci_products`, `asc_list_ci_workflows`, `asc_get_ci_workflow`, `asc_start_ci_build`, `asc_list_ci_build_runs`, `asc_get_ci_build_run`.
+- **Reporting** — `asc_get_sales_report` / `asc_get_finance_report` (gzipped-TSV download via a new `client.getRaw`, parsed to rows) and `asc_request_analytics_report` / `asc_list_analytics_reports`.
+- **Game Center** — `asc_get_game_center_detail`, achievements (`asc_list_achievements` / `asc_create_achievement` / `asc_set_achievement_localization`), and leaderboards (`asc_list_leaderboards` / `asc_create_leaderboard` / `asc_set_leaderboard_localization`).
+- **Alternative distribution (EU DMA)** — `asc_get_alt_distribution_key` / `asc_create_alt_distribution_key`, `asc_list_alt_distribution_packages`, and `asc_list_marketplace_domains` / `asc_create_marketplace_domain`.
+- `client.getRaw` — authenticated raw-bytes GET, added to support gzipped report downloads.
 - `asc_list_territories` — territory codes for the pricing and availability tools.
 - `asc_submit_for_review` now accepts an `inAppPurchaseV2` item in `additionalItems`, so an IAP can be bundled into an app version's submission.
 - `asc_release_status` now reports an `inAppPurchases` summary (count, states, and any in `MISSING_METADATA`/`DEVELOPER_ACTION_NEEDED`).
-- 82 new handler tests (mock-server based) across all the new tool families; full suite is 92 green.
+- 92 new handler tests (mock-server based) across all the new tool families, plus a `client.getRaw` test; full suite is 102 green.
 
 ### Notes
-- New tools inherit the server's pre-live-validation status. Spec details inferred from sibling APIs are flagged with `[VERIFY]` across the new tool files (`src/tools/iap.ts`, `subscriptions.ts`, `pricing.ts`, `compliance.ts`, `privacy.ts`, `provisioning.ts`, `offers.ts`, `offer_codes.ts`, `submission.ts`, `reviews_customer.ts`) — relationship key names, submission paths, price auto-equalization, the age-rating questionnaire, App Privacy shapes, provisioning enum spellings, offer/code shapes, and the app-availability / encryption-declaration / customer-review-response paths. Remaining App Store Connect gaps: sales/finance/analytics reports, Xcode Cloud, Game Center, webhooks, users & access, and alternative distribution.
+- New tools inherit the server's pre-live-validation status; spec details inferred from sibling APIs are flagged `[VERIFY]` throughout `src/tools/`. The six newest domains are the least certain: **reporting** (filter names; Sales/Finance return gzipped TSV — needs the ACCESS_TO_REPORTS role, Finance needs Finance/Admin), **users & access** (Admin key required; role enum), **Xcode Cloud** (git-reference relationship), **Game Center** (attribute shapes), **webhooks** (event-type values), and **alternative distribution** (EU-DMA, newest/most speculative).
+- The App Store Connect API surface is now broadly covered end to end (release, monetization, compliance, privacy, provisioning, CI, reporting, Game Center, webhooks, team access, EU distribution). Everything remains alpha until exercised against live Apple traffic.
 
 ## [0.1.0-alpha.1] — 2026-04-28
 

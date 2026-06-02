@@ -126,3 +126,21 @@ test("AscClient: sends Authorization header with the bearer token", async () => 
     assert.ok((seenAuth ?? "").length > 100, "should include a real JWT");
   } finally { await close(); }
 });
+
+test("AscClient: getRaw returns raw bytes with the bearer token (for report downloads)", async () => {
+  let seenAuth: string | undefined;
+  const payload = Buffer.from([0x1f, 0x8b, 0x08, 0x00, 0x01, 0x02, 0x03]); // arbitrary binary (gzip-ish header)
+  const { origin, close } = await withServer((req, res) => {
+    seenAuth = (req.headers.authorization as string | undefined) ?? undefined;
+    res.statusCode = 200;
+    res.setHeader("content-type", "application/a-gzip");
+    res.end(payload);
+  });
+  try {
+    const client = makeClient();
+    const bytes = await client.getRaw(`${origin}/v1/salesReports`, { "filter[vendorNumber]": "80000000" });
+    assert.ok(Buffer.isBuffer(bytes));
+    assert.equal(bytes.compare(payload), 0, "returns the exact response bytes");
+    assert.ok(seenAuth?.startsWith("Bearer "), "sends the bearer token");
+  } finally { await close(); }
+});

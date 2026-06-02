@@ -37,7 +37,7 @@ Claude does the work; you review the result in App Store Connect and tap **Submi
 
 ## What it does
 
-106 MCP tools split across:
+140 MCP tools split across:
 
 - **Discovery** (11) — `asc_whoami`, list/get apps, builds, versions, localizations, categories, territories, plus `asc_release_status`: a one-shot snapshot that tells Claude what's blocking submission.
 - **Build & upload** (5) — `xc_archive`, `xc_export_ipa`, `asc_validate_ipa`, `asc_upload_ipa` (defaults to the new REST `/v1/buildUploads` flow from WWDC 2025; falls back to `xcrun altool` on demand), `asc_wait_for_build_processing`.
@@ -55,6 +55,12 @@ Claude does the work; you review the result in App Store Connect and tap **Submi
 - **Subscription promotional offers** (4) — create/list/delete promotional offers (discounts for existing/lapsed subscribers) and add per-territory offer prices.
 - **Subscription offer codes & win-back** (6) — offer codes (NEW/EXISTING/EXPIRED eligibility) with custom or one-time-use redeemable codes, and win-back offers for lapsed subscribers.
 - **Provisioning** (13) — bundle IDs + capabilities, signing certificates, test devices, and provisioning profiles (code-signing automation, same auth as the rest).
+- **Webhooks** (6) — create/list/update/delete app-event webhooks, ping, list deliveries.
+- **Users & access** (6) — list/get/update team members, list/invite/cancel invitations (Admin key required).
+- **Xcode Cloud** (6) — list products/workflows, get/start/list build runs (CI/CD).
+- **Reporting** (4) — download Sales & Finance reports (gzipped TSV, parsed) and request App Store analytics reports.
+- **Game Center** (7) — per-app detail, achievements + leaderboards with per-locale text.
+- **Alternative distribution** (5) — EU-DMA distribution keys, packages, and marketplace domains.
 
 See the [tool reference](#tool-reference) for the full table.
 
@@ -430,6 +436,67 @@ Bundle IDs, capabilities, certificates, test devices, and provisioning profiles 
 | `asc_list_profiles` / `asc_create_profile` / `asc_delete_profile` | (varies) | Provisioning profiles (bundleId + certs + devices) |
 
 > **Validation status.** `[VERIFY]` — endpoints follow `research/api-reference.md` §14, but the `CapabilityType`/`CertificateType`/`ProfileType` enum spellings drift over time, so those inputs are free strings (common values documented in each tool). If a call 400s, attach the JSON:API error body to an issue.
+
+### Webhooks
+
+Subscribe an HTTPS endpoint to app events (2024+).
+
+| Tool | Required inputs | Purpose |
+|---|---|---|
+| `asc_list_webhooks` / `asc_create_webhook` / `asc_update_webhook` / `asc_delete_webhook` | (varies) | Manage webhooks (`url`, `eventTypes`, `secret`, `enabled`) |
+| `asc_ping_webhook` | `webhookId` | Send a test delivery |
+| `asc_list_webhook_deliveries` | `webhookId` | Recent delivery attempts (debugging) |
+
+### Users & access
+
+Team members and invitations. **Requires an Admin key** (lower roles get 403).
+
+| Tool | Required inputs | Purpose |
+|---|---|---|
+| `asc_list_users` / `asc_get_user` / `asc_update_user` | (varies) | View/edit members (roles, app visibility) |
+| `asc_list_user_invitations` / `asc_invite_user` / `asc_cancel_user_invitation` | (varies) | Manage pending invitations |
+
+### Xcode Cloud
+
+CI/CD products, workflows, and build runs.
+
+| Tool | Required inputs | Purpose |
+|---|---|---|
+| `asc_list_ci_products` | — | CI products |
+| `asc_list_ci_workflows` / `asc_get_ci_workflow` | `ciProductId` / `workflowId` | Workflows |
+| `asc_start_ci_build` | `workflowId` | Trigger a build run (optional git ref) |
+| `asc_list_ci_build_runs` / `asc_get_ci_build_run` | `workflowId` / `buildRunId` | Build-run status/progress |
+
+### Reporting
+
+Sales & Finance reports are **gzipped TSV** (fetched via the raw-bytes path, gunzipped, and parsed to rows); Analytics reports are asynchronous. Needs the **ACCESS_TO_REPORTS** role (Finance reports need Finance/Admin).
+
+| Tool | Required inputs | Purpose |
+|---|---|---|
+| `asc_get_sales_report` | `vendorNumber` | Sales & Trends report → parsed rows |
+| `asc_get_finance_report` | `vendorNumber`, `regionCode`, `reportDate` | Finance report → parsed rows |
+| `asc_request_analytics_report` | `appId` | Request an analytics report set (async) |
+| `asc_list_analytics_reports` | `requestId` | Generated reports for a request |
+
+### Game Center
+
+| Tool | Required inputs | Purpose |
+|---|---|---|
+| `asc_get_game_center_detail` | `appId` | The app's Game Center detail (anchors the rest) |
+| `asc_list_achievements` / `asc_create_achievement` / `asc_set_achievement_localization` | (varies) | Achievements + per-locale text |
+| `asc_list_leaderboards` / `asc_create_leaderboard` / `asc_set_leaderboard_localization` | (varies) | Leaderboards + per-locale text |
+
+### Alternative distribution (EU DMA)
+
+Distributing outside the App Store in the EU — the newest, most speculative surface.
+
+| Tool | Required inputs | Purpose |
+|---|---|---|
+| `asc_get_alt_distribution_key` / `asc_create_alt_distribution_key` | `appId` (+ `publicKey`) | App's alt-distribution signing key |
+| `asc_list_alt_distribution_packages` | `appId` | Alt-distribution build packages |
+| `asc_list_marketplace_domains` / `asc_create_marketplace_domain` | (varies) | Marketplace domains |
+
+> **Validation status.** All six domains are `[VERIFY]` — not yet exercised against live Apple traffic. The reporting filter names, the Xcode Cloud git-reference relationship, Game Center attribute shapes, and the entire alternative-distribution surface are inferred. If a call 400s, attach the JSON:API error body to an issue.
 
 ## Troubleshooting
 
