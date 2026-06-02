@@ -11,21 +11,17 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
   (`challengeEnabled` isn't a valid field), `asc_get_app_price_schedule` (degrade gracefully when no
   price is set), `asc_list_subscription_price_points` (drop the invalid `proceedsForYear1` field),
   `asc_set_age_rating` (Apple requires the *whole* questionnaire per write — now merges onto the current
-  declaration), `asc_set_subscription_price` (omit `territory` — the price point encodes it), and
-  `asc_list_privacy_options` (App Privacy reference endpoints are incorrect — now best-effort, pending the
-  correct resource names).
+  declaration), and `asc_set_subscription_price` (omit the optional `territory`; the price point encodes it).
 - Confirmed working live: auth, app/version/build/category/territory reads, `asc_set_content_rights`,
-  the full IAP flow (create → localize → price → availability), and subscription create + localization.
+  the full IAP flow (create → localize → price → availability), and the full subscription flow (create →
+  localize → availability → price). `asc_set_subscription_price` works once the subscription has
+  availability set first (`asc_set_subscription_availability`) — otherwise Apple 409s on the price point.
 
-### Known issues
-- A second live pass (after the fixes above merged) re-confirmed the five read/get fixes work, but two
-  things remain **non-functional** and are flagged `KNOWN-BROKEN` in-code, pending the correct API shapes:
-  - `asc_set_subscription_price` — the `subscriptionPrices` POST 409s on `subscriptionPricePoint/id` with
-    and without a `territory` relationship; the correct subscription price-create flow is still unknown.
-  - **App Privacy** tools (`asc_list_privacy_options` / `asc_get_privacy_details` / `asc_add_data_usage` /
-    `asc_declare_no_data_collected` / `asc_publish_privacy` / `asc_remove_data_usage`) — the
-    `appDataUsage*` reference endpoints all 404 and the app exposes no such relationship, so this domain
-    targets resources that aren't in the public API.
+### Removed
+- **App Privacy "nutrition label" tools** (6) — verified against the App Store Connect OpenAPI spec that
+  these data-collection resources are **not in the public API** (no `appDataUsage*` paths or schemas; an app
+  exposes no such relationship). The data is App Store Connect UI-only, so the tools were dropped rather
+  than shipped broken.
 
 ### Added
 - **Auto-renewable subscriptions** — 12 tools: `asc_list_subscription_groups`, `asc_create_subscription_group`, `asc_set_subscription_group_localization`, `asc_create_subscription`, `asc_get_subscription`, `asc_set_subscription_localization`, `asc_list_subscription_price_points`, `asc_set_subscription_price` (base territory + auto-equalize, with `preserveCurrentPrice`), `asc_set_subscription_availability`, `asc_set_subscription_intro_offer` (free trial / pay-as-you-go / pay-up-front), `asc_upload_subscription_review_screenshot`, and `asc_submit_subscription_for_review` (group-level).
@@ -33,7 +29,6 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - **App pricing** — `asc_list_app_price_points`, `asc_get_app_price_schedule`, and `asc_set_app_price` (free or paid; base territory + auto-equalize, or an explicit price point). The app's own price, distinct from in-app-purchase pricing.
 - **Phased release control** — `asc_set_phased_release` enables / pauses / resumes / completes the 7-day staged rollout (`appStoreVersionPhasedRelease`), idempotently.
 - **Compliance declarations** — `asc_set_content_rights` (third-party content rights on the app), plus `asc_get_age_rating` / `asc_set_age_rating` (the age-rating questionnaire; resolves the editable AppInfo + declaration, PATCHes only the fields passed, with an `additionalDeclarations` escape hatch for Apple's 2024–25 questionnaire changes).
-- **App privacy** — 6 tools for the data-collection "nutrition label": `asc_list_privacy_options` (category/purpose/data-protection ids), `asc_get_privacy_details`, `asc_add_data_usage`, `asc_remove_data_usage`, `asc_declare_no_data_collected` (shortcut), and `asc_publish_privacy`.
 - **Subscription promotional offers** — 4 tools: `asc_list_promotional_offers`, `asc_create_promotional_offer` (FREE_TRIAL / PAY_AS_YOU_GO / PAY_UP_FRONT; resolves a `customerPrice` to a price point or takes an explicit `pricePointId`), `asc_add_promotional_offer_price` (per-territory), and `asc_delete_promotional_offer`. Discounts for existing/lapsed subscribers, distinct from introductory offers.
 - **Provisioning / code signing** — 13 tools across bundle IDs (`asc_list_bundle_ids` / `asc_create_bundle_id` / `asc_delete_bundle_id`), capabilities (`asc_enable_bundle_capability` / `asc_disable_bundle_capability`), certificates (`asc_list_certificates` / `asc_create_certificate` / `asc_revoke_certificate`), devices (`asc_list_devices` / `asc_register_device`), and profiles (`asc_list_profiles` / `asc_create_profile` / `asc_delete_profile`).
 - **Submission gates** — `asc_get_app_availability` / `asc_set_app_availability` (territories the app is sold in) and `asc_list_encryption_declarations` / `asc_create_encryption_declaration` / `asc_assign_encryption_declaration` (export compliance).
@@ -49,11 +44,11 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - `asc_list_territories` — territory codes for the pricing and availability tools.
 - `asc_submit_for_review` now accepts an `inAppPurchaseV2` item in `additionalItems`, so an IAP can be bundled into an app version's submission.
 - `asc_release_status` now reports an `inAppPurchases` summary (count, states, and any in `MISSING_METADATA`/`DEVELOPER_ACTION_NEEDED`).
-- 92 new handler tests (mock-server based) across all the new tool families, plus a `client.getRaw` test; full suite is 102 green.
+- 85 new handler tests (mock-server based) across all the new tool families, plus a `client.getRaw` test; full suite is 95 green.
 
 ### Notes
 - New tools inherit the server's pre-live-validation status; spec details inferred from sibling APIs are flagged `[VERIFY]` throughout `src/tools/`. The six newest domains are the least certain: **reporting** (filter names; Sales/Finance return gzipped TSV — needs the ACCESS_TO_REPORTS role, Finance needs Finance/Admin), **users & access** (Admin key required; role enum), **Xcode Cloud** (git-reference relationship), **Game Center** (attribute shapes), **webhooks** (event-type values), and **alternative distribution** (EU-DMA, newest/most speculative).
-- The App Store Connect API surface is now broadly covered end to end (release, monetization, compliance, privacy, provisioning, CI, reporting, Game Center, webhooks, team access, EU distribution). Everything remains alpha until exercised against live Apple traffic.
+- The App Store Connect API surface is now broadly covered end to end (release, monetization, compliance, provisioning, CI, reporting, Game Center, webhooks, team access, EU distribution). App Privacy "nutrition label" data is not in the public API (UI-only). Everything remains alpha until exercised against live Apple traffic.
 
 ## [0.1.0-alpha.1] — 2026-04-28
 

@@ -13,7 +13,7 @@ xcodebuild → archive → export → upload → metadata → screenshots → su
 
 Claude does the work; you review the result in App Store Connect and tap **Submit for Review**.
 
-> **Status: 0.1.0-alpha.1.** API coverage is current as of Apple's OpenAPI v4.3 + WWDC 2025. The core release/monetization paths **have now been exercised against the live App Store Connect API** — auth, metadata, screenshot upload, app pricing discovery, and the full in-app-purchase create→localize→price→availability flow plus subscription create/localize all work against a real app. Tools still carrying `[VERIFY]` (notably App Privacy data usages, the age-rating full-questionnaire write, app-availability v2 write, and subscription-price POST) are the ones not yet fully confirmed. Treat as alpha. See [Known limitations](#known-limitations).
+> **Status: 0.1.0-alpha.1.** API coverage is current as of Apple's OpenAPI v4.3 + WWDC 2025. The core release/monetization paths **have now been exercised against the live App Store Connect API** — auth, metadata, screenshot upload, app pricing discovery, and the full in-app-purchase create→localize→price→availability flow plus subscription create/localize all work against a real app. The full in-app-purchase and subscription monetization flows (create → localize → price → availability) are confirmed live. Tools still carrying `[VERIFY]` (the age-rating full-questionnaire write and the app-availability v2 write shape) aren't yet fully confirmed. (App Privacy "nutrition label" tools were removed — that data isn't in the public App Store Connect API.) Treat as alpha. See [Known limitations](#known-limitations).
 
 ---
 
@@ -37,14 +37,13 @@ Claude does the work; you review the result in App Store Connect and tap **Submi
 
 ## What it does
 
-140 MCP tools split across:
+134 MCP tools split across:
 
 - **Discovery** (11) — `asc_whoami`, list/get apps, builds, versions, localizations, categories, territories, plus `asc_release_status`: a one-shot snapshot that tells Claude what's blocking submission.
 - **Build & upload** (5) — `xc_archive`, `xc_export_ipa`, `asc_validate_ipa`, `asc_upload_ipa` (defaults to the new REST `/v1/buildUploads` flow from WWDC 2025; falls back to `xcrun altool` on demand), `asc_wait_for_build_processing`.
 - **Versioning & metadata** (10) — create/update versions, attach builds, upsert per-locale description/keywords/promo text/what's new, set categories, set App Review demo credentials, and control the 7-day phased release (`asc_set_phased_release`).
 - **App pricing** (3) — list price points, read the price schedule, set the app's price (free or paid; base territory + auto-equalize).
 - **Compliance declarations** (3) — set the content-rights declaration, read/set the age-rating questionnaire.
-- **App privacy** (6) — the data-collection "nutrition label": list the category/purpose/protection options, read current declarations, add/remove data usages, declare "no data collected", and publish.
 - **Submission gates** (5) — set app territory availability (where it's sold) and manage export-compliance encryption declarations (list/create/assign-to-build).
 - **Screenshots & previews** (7) — idempotent set-find-or-create, full reservation → multipart PUT → MD5 commit. Same code path covers iPhone/iPad/Watch/TV/Vision Pro/Mac and iMessage variants.
 - **Review submission** (4) — modern `reviewSubmissions` flow.
@@ -262,21 +261,6 @@ Submission gates beyond metadata. (App-privacy "nutrition label" data usages are
 | `asc_set_age_rating` | `appId` | Set questionnaire answers (resolves the editable AppInfo + declaration) |
 
 > **Validation status.** `[VERIFY]` — and note Apple overhauled the age-rating questionnaire in 2024–25 (new bands/questions). `asc_set_age_rating` PATCHes only the fields you pass and takes an `additionalDeclarations` escape hatch for questions not in the typed list.
-
-### App privacy
-
-The data-collection "nutrition label" every app must publish before submission. Apple models it as tuples of (data-type category × purpose × data-protection level). For an app that collects nothing, the two-call path is `asc_declare_no_data_collected` → `asc_publish_privacy`.
-
-| Tool | Required inputs | Purpose |
-|---|---|---|
-| `asc_list_privacy_options` | — | Category / purpose / data-protection ids to choose from |
-| `asc_get_privacy_details` | `appId` | Current data-usage declarations + published flag |
-| `asc_add_data_usage` | `appId`, `categoryId`, `dataProtectionId` | Declare one row (add `purposeId` for collected data) |
-| `asc_remove_data_usage` | `dataUsageId` | Remove one declaration |
-| `asc_declare_no_data_collected` | `appId` | Shortcut: the single "collects nothing" declaration |
-| `asc_publish_privacy` | `appId` | Publish the label (Apple 400s if incomplete) |
-
-> **Validation status.** `[VERIFY]` — the research notes don't cover App Privacy, so the `appDataUsages` relationship shape and the publish-state PATCH are inferred. If a call 400s, attach the JSON:API error body to an issue.
 
 ### Submission gates
 

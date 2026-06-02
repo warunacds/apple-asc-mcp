@@ -23,10 +23,6 @@ import {
 import { listAppPricePointsTool, getAppPriceScheduleTool, setAppPriceTool } from "./pricing.js";
 import { setContentRightsTool, getAgeRatingTool, setAgeRatingTool } from "./compliance.js";
 import {
-  listPrivacyOptionsTool, getPrivacyDetailsTool, addDataUsageTool, removeDataUsageTool,
-  declareNoDataCollectedTool, publishPrivacyTool,
-} from "./privacy.js";
-import {
   listPromotionalOffersTool, createPromotionalOfferTool, addPromotionalOfferPriceTool, deletePromotionalOfferTool,
 } from "./offers.js";
 import {
@@ -92,10 +88,6 @@ export const ALL_TOOLS: Tool[] = [
 
   // Compliance declarations (content rights, age rating)
   setContentRightsTool, getAgeRatingTool, setAgeRatingTool,
-
-  // App privacy ("nutrition label")
-  listPrivacyOptionsTool, getPrivacyDetailsTool, addDataUsageTool, removeDataUsageTool,
-  declareNoDataCollectedTool, publishPrivacyTool,
 
   // Screenshots & previews
   listScreenshotSetsTool, findOrCreateScreenshotSetTool, uploadScreenshotTool,
