@@ -69,6 +69,14 @@ import {
   getAltDistributionKeyTool, createAltDistributionKeyTool, listAltDistributionPackagesTool,
   listMarketplaceDomainsTool, createMarketplaceDomainTool,
 } from "./alt_distribution.js";
+import {
+  listAppEventsTool, createAppEventTool, updateAppEventTool, setAppEventLocalizationTool,
+  uploadAppEventScreenshotTool, uploadAppEventVideoClipTool, deleteAppEventTool,
+} from "./app_events.js";
+import {
+  listCustomProductPagesTool, createCustomProductPageTool, getCustomProductPageTool,
+  setCustomProductPageLocalizationTool, deleteCustomProductPageTool,
+} from "./custom_product_pages.js";
 
 export const ALL_TOOLS: Tool[] = [
   // Discovery (read-only)
@@ -150,4 +158,12 @@ export const ALL_TOOLS: Tool[] = [
   // Alternative distribution (EU DMA)
   getAltDistributionKeyTool, createAltDistributionKeyTool, listAltDistributionPackagesTool,
   listMarketplaceDomainsTool, createMarketplaceDomainTool,
+
+  // In-App Events
+  listAppEventsTool, createAppEventTool, updateAppEventTool, setAppEventLocalizationTool,
+  uploadAppEventScreenshotTool, uploadAppEventVideoClipTool, deleteAppEventTool,
+
+  // Custom Product Pages
+  listCustomProductPagesTool, createCustomProductPageTool, getCustomProductPageTool,
+  setCustomProductPageLocalizationTool, deleteCustomProductPageTool,
 ];

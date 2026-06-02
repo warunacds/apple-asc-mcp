@@ -20,6 +20,36 @@ const PREVIEW_TYPES = [
   "DESKTOP","APPLE_TV","APPLE_VISION_PRO",
 ] as const;
 
+/**
+ * Screenshot / preview sets hang off a localization. Normally that's an App Store version localization,
+ * but a Custom Product Page localization is also a valid parent (same set + upload flow). Resolve which
+ * one the caller targeted into the list path + the relationship to send on create.
+ */
+function resolveSetParent(input: { localizationId?: string; customProductPageLocalizationId?: string }) {
+  if (input.customProductPageLocalizationId) {
+    return {
+      base: `/v1/appCustomProductPageLocalizations/${input.customProductPageLocalizationId}`,
+      relName: "appCustomProductPageLocalization",
+      relType: "appCustomProductPageLocalizations",
+      id: input.customProductPageLocalizationId,
+    };
+  }
+  return {
+    base: `/v1/appStoreVersionLocalizations/${input.localizationId}`,
+    relName: "appStoreVersionLocalization",
+    relType: "appStoreVersionLocalizations",
+    id: input.localizationId!,
+  };
+}
+
+const oneLocalization = z.object({
+  localizationId: z.string().optional().describe("An App Store version localization id."),
+  customProductPageLocalizationId: z.string().optional().describe("A Custom Product Page localization id — target a CPP variant instead of the default page."),
+});
+const refineOneLocalization = (v: { localizationId?: string; customProductPageLocalizationId?: string }) =>
+  !!v.localizationId !== !!v.customProductPageLocalizationId;
+const oneLocalizationMsg = { message: "Provide exactly one of localizationId or customProductPageLocalizationId." };
+
 export const listScreenshotSetsTool = tool({
   name: "asc_list_screenshot_sets",
   description: "List screenshot sets under an App Store Version Localization. One set per (locale, displayType).",
@@ -32,25 +62,22 @@ export const listScreenshotSetsTool = tool({
 
 export const findOrCreateScreenshotSetTool = tool({
   name: "asc_find_or_create_screenshot_set",
-  description: "Idempotently get the screenshot set for a (localization, displayType) pair, creating it if missing. Returns the set id.",
-  inputSchema: z.object({
-    localizationId: z.string(),
+  description:
+    "Idempotently get the screenshot set for a (localization, displayType) pair, creating it if missing. Returns the set id. " +
+    "Pass localizationId for the default product page, or customProductPageLocalizationId to target a Custom Product Page variant.",
+  inputSchema: oneLocalization.extend({
     displayType: z.enum(SCREENSHOT_DISPLAY_TYPES),
-  }).strict(),
+  }).strict().refine(refineOneLocalization, oneLocalizationMsg),
   handler: async (input, { client }) => {
-    const existing = await client.list<{ screenshotDisplayType?: string }>(
-      `/v1/appStoreVersionLocalizations/${input.localizationId}/appScreenshotSets`,
-      { limit: 50 },
-    );
+    const p = resolveSetParent(input);
+    const existing = await client.list<{ screenshotDisplayType?: string }>(`${p.base}/appScreenshotSets`, { limit: 50 });
     const match = existing.find((s) => s.attributes?.screenshotDisplayType === input.displayType);
     if (match) return { id: match.id, displayType: input.displayType, action: "found" };
     const created = await client.post<{ data: { id: string } }>("/v1/appScreenshotSets", {
       data: {
         type: "appScreenshotSets",
         attributes: { screenshotDisplayType: input.displayType },
-        relationships: {
-          appStoreVersionLocalization: { data: { type: "appStoreVersionLocalizations", id: input.localizationId } },
-        },
+        relationships: { [p.relName]: { data: { type: p.relType, id: p.id } } },
       },
     });
     return { id: created.data.id, displayType: input.displayType, action: "created" };
@@ -121,23 +148,22 @@ export const reorderScreenshotsTool = tool({
 
 export const findOrCreatePreviewSetTool = tool({
   name: "asc_find_or_create_preview_set",
-  description: "Idempotently get the App Preview set for a (localization, previewType) pair.",
-  inputSchema: z.object({
-    localizationId: z.string(),
+  description:
+    "Idempotently get the App Preview set for a (localization, previewType) pair. Pass localizationId for the default " +
+    "product page, or customProductPageLocalizationId to target a Custom Product Page variant.",
+  inputSchema: oneLocalization.extend({
     previewType: z.enum(PREVIEW_TYPES),
-  }).strict(),
+  }).strict().refine(refineOneLocalization, oneLocalizationMsg),
   handler: async (input, { client }) => {
-    const existing = await client.list<{ previewType?: string }>(
-      `/v1/appStoreVersionLocalizations/${input.localizationId}/appPreviewSets`,
-      { limit: 50 },
-    );
+    const p = resolveSetParent(input);
+    const existing = await client.list<{ previewType?: string }>(`${p.base}/appPreviewSets`, { limit: 50 });
     const match = existing.find((s) => s.attributes?.previewType === input.previewType);
     if (match) return { id: match.id, previewType: input.previewType, action: "found" };
     const created = await client.post<{ data: { id: string } }>("/v1/appPreviewSets", {
       data: {
         type: "appPreviewSets",
         attributes: { previewType: input.previewType },
-        relationships: { appStoreVersionLocalization: { data: { type: "appStoreVersionLocalizations", id: input.localizationId } } },
+        relationships: { [p.relName]: { data: { type: p.relType, id: p.id } } },
       },
     });
     return { id: created.data.id, previewType: input.previewType, action: "created" };

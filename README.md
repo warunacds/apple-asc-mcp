@@ -37,7 +37,7 @@ Claude does the work; you review the result in App Store Connect and tap **Submi
 
 ## What it does
 
-138 MCP tools split across:
+150 MCP tools split across:
 
 - **Discovery** (11) — `asc_whoami`, list/get apps, builds, versions, localizations, categories, territories, plus `asc_release_status`: a one-shot snapshot that tells Claude what's blocking submission.
 - **Build & upload** (5) — `xc_archive`, `xc_export_ipa`, `asc_validate_ipa`, `asc_upload_ipa` (defaults to the new REST `/v1/buildUploads` flow from WWDC 2025; falls back to `xcrun altool` on demand), `asc_wait_for_build_processing`.
@@ -60,6 +60,8 @@ Claude does the work; you review the result in App Store Connect and tap **Submi
 - **Reporting** (4) — download Sales & Finance reports (gzipped TSV, parsed) and request App Store analytics reports.
 - **Game Center** (7) — per-app detail, achievements + leaderboards with per-locale text.
 - **Alternative distribution** (5) — EU-DMA distribution keys, packages, and marketplace domains.
+- **In-App Events** (7) — create/list/update/delete time-boxed product-page events, per-locale text, and event card / details-page art (image + video clip). Schedule per territory; submit via `asc_submit_for_review`.
+- **Custom Product Pages** (5) — create/list/get/delete per-audience variant pages with their own promo text and (reusing the screenshot/preview tools) their own visuals.
 
 See the [tool reference](#tool-reference) for the full table.
 
@@ -281,11 +283,11 @@ Final blockers beyond version metadata: where the app is sold, and export compli
 | Tool | Required inputs | Purpose |
 |---|---|---|
 | `asc_list_screenshot_sets` | `localizationId` | List sets under a localization |
-| `asc_find_or_create_screenshot_set` | `localizationId`, `displayType` | Idempotent set get/create |
+| `asc_find_or_create_screenshot_set` | `localizationId` *or* `customProductPageLocalizationId`, `displayType` | Idempotent set get/create (default page or a Custom Product Page) |
 | `asc_upload_screenshot` | `setId`, `filePath` | Reservation → multipart PUT → MD5 commit |
 | `asc_delete_screenshot` | `screenshotId` | Remove one screenshot |
 | `asc_reorder_screenshots` | `setId`, `screenshotIds[]` | Change display order |
-| `asc_find_or_create_preview_set` | `localizationId`, `previewType` | Idempotent video set get/create |
+| `asc_find_or_create_preview_set` | `localizationId` *or* `customProductPageLocalizationId`, `previewType` | Idempotent video set get/create |
 | `asc_upload_preview` | `setId`, `filePath` | Same flow as screenshots, for video |
 
 ### Review submission
@@ -484,6 +486,34 @@ Distributing outside the App Store in the EU — the newest, most speculative su
 | `asc_list_marketplace_domains` / `asc_create_marketplace_domain` | (varies) | Marketplace domains |
 
 > **Validation status.** All six domains are `[VERIFY]` — not yet exercised against live Apple traffic. The reporting filter names, the Xcode Cloud git-reference relationship, Game Center attribute shapes, and the entire alternative-distribution surface are inferred. If a call 400s, attach the JSON:API error body to an issue.
+
+### In-App Events
+
+Time-boxed, promotable events on the product page. Flow: create → localize → upload card/details art → schedule per territory → `asc_submit_for_review` with `{type:"appEvent", id}`.
+
+| Tool | Required inputs | Purpose |
+|---|---|---|
+| `asc_list_app_events` | `appId` | Events on an app (referenceName, badge, eventState) |
+| `asc_create_app_event` | `appId`, `referenceName` | Create the event (+ badge / priority / purpose / schedule) |
+| `asc_update_app_event` | `appEventId` | Set `territorySchedules` (publish/start/end per territory) + other fields |
+| `asc_set_app_event_localization` | `appEventId`, `locale` | Upsert name / short / long description per locale |
+| `asc_upload_app_event_screenshot` | `appEventLocalizationId`, `filePath`, `assetType` | Card / details-page image (reservation → PUT → commit) |
+| `asc_upload_app_event_video_clip` | `appEventLocalizationId`, `filePath`, `assetType` | Card / details-page video clip |
+| `asc_delete_app_event` | `appEventId` | Delete an event |
+
+### Custom Product Pages
+
+Per-audience variant pages, each with its own URL, promo text, and visuals. Flow: create → localize the draft version → attach screenshots/previews (the screenshot/preview set tools take `customProductPageLocalizationId`) → `asc_submit_for_review` with `{type:"appCustomProductPageVersion", id}`.
+
+| Tool | Required inputs | Purpose |
+|---|---|---|
+| `asc_list_custom_product_pages` | `appId` | Pages (name, shareable url, visible) |
+| `asc_create_custom_product_page` | `appId`, `name` | Create a page; returns the draft `versionId` |
+| `asc_get_custom_product_page` | `customProductPageId` | url + visibility + draft version + localizations |
+| `asc_set_custom_product_page_localization` | `versionId`, `locale` | Upsert promotional text; the returned localization id feeds the screenshot tools |
+| `asc_delete_custom_product_page` | `customProductPageId` | Delete a page |
+
+> **Validation status.** Create shapes confirmed against the OpenAPI spec; `territorySchedules` is fully typed. Not yet exercised live — video-clip formats and the exact pre-submission requirements (Apple wants a schedule before an event submits) are the likely first surprises.
 
 ## Troubleshooting
 

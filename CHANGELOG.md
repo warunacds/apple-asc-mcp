@@ -48,6 +48,17 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
   than shipped broken.
 
 ### Added
+- **In-App Events** (7 tools) — `asc_list_app_events`, `asc_create_app_event` (referenceName + badge / priority /
+  purpose / deepLink), `asc_update_app_event` (sets `territorySchedules` — the per-territory publish/start/end
+  windows), `asc_set_app_event_localization` (name + short/long description per locale), `asc_upload_app_event_screenshot`
+  and `asc_upload_app_event_video_clip` (EVENT_CARD / EVENT_DETAILS_PAGE art, reusing the asset-upload runner), and
+  `asc_delete_app_event`. Submit via `asc_submit_for_review` with a `{type:"appEvent"}` item.
+- **Custom Product Pages** (5 tools) — `asc_list_custom_product_pages`, `asc_create_custom_product_page` (returns the
+  draft version id), `asc_get_custom_product_page` (url + visibility + version + localizations),
+  `asc_set_custom_product_page_localization` (promotional text per locale), and `asc_delete_custom_product_page`.
+  Submit a finished version via `asc_submit_for_review` with a `{type:"appCustomProductPageVersion"}` item.
+- `asc_find_or_create_screenshot_set` / `asc_find_or_create_preview_set` now accept a `customProductPageLocalizationId`
+  (instead of `localizationId`) so Custom Product Page visuals reuse the existing screenshot/preview upload flow.
 - **Delete tools for monetization resources** (4) — `asc_delete_in_app_purchase` (DELETE `/v2/inAppPurchases/{id}`),
   `asc_delete_subscription` (DELETE `/v1/subscriptions/{id}`), `asc_delete_subscription_group` (DELETE
   `/v1/subscriptionGroups/{id}`; the group must be empty first), and `asc_delete_win_back_offer` (DELETE
