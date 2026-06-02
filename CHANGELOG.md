@@ -17,6 +17,16 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - Confirmed working live: auth, app/version/build/category/territory reads, `asc_set_content_rights`,
   the full IAP flow (create → localize → price → availability), and subscription create + localization.
 
+### Known issues
+- A second live pass (after the fixes above merged) re-confirmed the five read/get fixes work, but two
+  things remain **non-functional** and are flagged `KNOWN-BROKEN` in-code, pending the correct API shapes:
+  - `asc_set_subscription_price` — the `subscriptionPrices` POST 409s on `subscriptionPricePoint/id` with
+    and without a `territory` relationship; the correct subscription price-create flow is still unknown.
+  - **App Privacy** tools (`asc_list_privacy_options` / `asc_get_privacy_details` / `asc_add_data_usage` /
+    `asc_declare_no_data_collected` / `asc_publish_privacy` / `asc_remove_data_usage`) — the
+    `appDataUsage*` reference endpoints all 404 and the app exposes no such relationship, so this domain
+    targets resources that aren't in the public API.
+
 ### Added
 - **Auto-renewable subscriptions** — 12 tools: `asc_list_subscription_groups`, `asc_create_subscription_group`, `asc_set_subscription_group_localization`, `asc_create_subscription`, `asc_get_subscription`, `asc_set_subscription_localization`, `asc_list_subscription_price_points`, `asc_set_subscription_price` (base territory + auto-equalize, with `preserveCurrentPrice`), `asc_set_subscription_availability`, `asc_set_subscription_intro_offer` (free trial / pay-as-you-go / pay-up-front), `asc_upload_subscription_review_screenshot`, and `asc_submit_subscription_for_review` (group-level).
 - **In-App Purchases (v2)** — 9 tools covering the full IAP path: `asc_list_in_app_purchases`, `asc_get_in_app_purchase`, `asc_create_in_app_purchase`, `asc_set_iap_localization` (upsert display name + description per locale), `asc_list_iap_price_points`, `asc_set_iap_price` (base territory + auto-equalize), `asc_set_iap_availability`, `asc_upload_iap_review_screenshot` (reuses the existing asset-upload runner), and `asc_submit_iap_for_review`.

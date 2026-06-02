@@ -243,7 +243,9 @@ export const setSubscriptionPriceTool = tool({
   description:
     "Set the price of a subscription in a base territory; other territories auto-equalize from it. Provide customerPrice " +
     "(e.g. \"4.99\", resolved to a price point in the base territory) OR an explicit pricePointId from " +
-    "asc_list_subscription_price_points. preserveCurrentPrice keeps existing subscribers on their current price.",
+    "asc_list_subscription_price_points. preserveCurrentPrice keeps existing subscribers on their current price. " +
+    "⚠ KNOWN ISSUE: a live POST 409s on subscriptionPricePoint/id — the subscription price-create flow is not yet " +
+    "correct (the /pricePoints id isn't accepted by a bare subscriptionPrices POST). Under investigation.",
   inputSchema: z.object({
     subscriptionId: z.string(),
     baseTerritory: z.string().default("USA").describe("Territory whose price drives auto-equalization, e.g. USA."),
@@ -272,9 +274,10 @@ export const setSubscriptionPriceTool = tool({
     }
 
     // Unlike IAPs there is no price-schedule resource — a subscriptionPrice is created directly.
-    // [VERIFY] A live POST returned 409 "error processing the pricing information" on
-    // subscriptionPricePoint/id when a `territory` relationship was also sent — the price point already
-    // encodes its territory, so we omit `territory`. Re-confirm against a live app.
+    // [VERIFY] KNOWN-BROKEN: live POSTs 409 "error processing the pricing information" on
+    // subscriptionPricePoint/id — both WITH and WITHOUT a `territory` relationship (confirmed twice), so
+    // territory was not the cause. The price-point id from /subscriptions/{id}/pricePoints isn't accepted
+    // by this bare POST; the correct subscription price-create flow still needs to be determined.
     const attributes: Record<string, unknown> = {};
     if (input.preserveCurrentPrice !== undefined) attributes.preserveCurrentPrice = input.preserveCurrentPrice;
     if (input.startDate) attributes.startDate = input.startDate;

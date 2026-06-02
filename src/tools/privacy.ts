@@ -11,9 +11,11 @@ import type { AppDataUsagePublishStateAttrs } from "../types.js";
  *   - Collects nothing: asc_declare_no_data_collected → asc_publish_privacy.
  *   - Collects data:    asc_list_privacy_options (get ids) → asc_add_data_usage per row → asc_publish_privacy.
  *
- * Not validated against live Apple traffic (the research doc doesn't cover App Privacy); relationship
- * and publish-state shapes are inferred and marked [VERIFY]. If a call 400s, the JSON:API error body
- * pins down the exact shape.
+ * ⚠ KNOWN-BROKEN (confirmed live): the reference endpoints used here — `appDataUsageCategories`,
+ * `appDataUsagePurposes`, `appDataUsageDataProtections` — all return 404 "does not exist", and the app's
+ * own relationship map has no `appDataUsage*` relationship. So this whole domain targets endpoints that
+ * aren't in the public App Store Connect API (App Privacy may be UI-only, or use different resources).
+ * These tools do NOT work as written and need the correct resource model before they're usable.
  */
 
 const NO_DATA_COLLECTED = "DATA_NOT_COLLECTED";
@@ -26,10 +28,9 @@ export const listPrivacyOptionsTool = tool({
     "Use the returned ids with asc_add_data_usage.",
   inputSchema: z.object({}).strict(),
   handler: async (_input, { client }) => {
-    // [VERIFY] These reference endpoints are NOT confirmed — a live call returned 404 PATH_ERROR for
-    // `v1/appDataUsagePurposes`, so the App Privacy data-usage resource model here is likely wrong and
-    // needs correcting against the real spec. Fetched best-effort per list so one bad name doesn't sink
-    // the others, and so the result reveals which (if any) resolve.
+    // KNOWN-BROKEN: confirmed live that all three of these reference endpoints 404 ("does not exist").
+    // The App Privacy resource model here is wrong — these names aren't in the public API. Fetched
+    // best-effort so the tool returns the per-list errors (for diagnosis) instead of hard-failing.
     const shape = (rs: { id: string; attributes?: Record<string, unknown> }[]) => rs.map((r) => ({ id: r.id, ...r.attributes }));
     const fetch1 = (path: string) => client.list<{ deleted?: boolean }>(path, { limit: 200 }).then(shape).catch((e) => ({ error: String((e as Error).message).slice(0, 200) }));
     const [categories, purposes, dataProtections] = await Promise.all([
