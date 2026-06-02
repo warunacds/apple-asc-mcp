@@ -46,6 +46,14 @@ test("asc_set_app_availability posts explicit territories", async () => {
   assert.equal(body.data.type, "appAvailabilities");
   assert.deepEqual(body.data.relationships.app.data, { type: "apps", id: "app1" });
   assert.equal(body.data.relationships.territoryAvailabilities.data.length, 2);
+  // The v2 shape references inline `territoryAvailabilities` resources (NOT plain territory refs);
+  // each is created in `included` with its own territory relationship + available flag.
+  assert.equal(body.data.relationships.territoryAvailabilities.data[0].type, "territoryAvailabilities");
+  assert.equal(body.included.length, 2);
+  assert.equal(body.included[0].type, "territoryAvailabilities");
+  assert.equal(body.included[0].id, body.data.relationships.territoryAvailabilities.data[0].id);
+  assert.deepEqual(body.included[0].relationships.territory.data, { type: "territories", id: "USA" });
+  assert.equal(body.included[0].attributes.available, true);
   assert.equal(body.data.attributes.availableInNewTerritories, true);
 });
 
@@ -68,19 +76,27 @@ test("asc_list_encryption_declarations filters by app", async () => {
   assert.equal(out[0]!.id, "decl1");
 });
 
-test("asc_create_encryption_declaration posts usesEncryption + optional flags + app relationship", async () => {
-  const { client, calls } = fakeClient({ post: () => ({ data: { id: "decl1", attributes: { usesEncryption: true } } }) });
+test("asc_create_encryption_declaration posts appDescription + crypto flags + app relationship", async () => {
+  const { client, calls } = fakeClient({ post: () => ({ data: { id: "decl1", attributes: {} } }) });
   await createEncryptionDeclarationTool.handler(
-    parse(createEncryptionDeclarationTool, { appId: "app1", usesEncryption: true, exempt: true, availableOnFrenchStore: true }),
+    parse(createEncryptionDeclarationTool, {
+      appId: "app1", appDescription: "Standard HTTPS only",
+      containsProprietaryCryptography: false, containsThirdPartyCryptography: false, availableOnFrenchStore: true,
+    }),
     { client, config: cfg },
   );
   const body = calls.find((c) => c.method === "POST")!.body as any;
   assert.equal(body.data.type, "appEncryptionDeclarations");
-  assert.equal(body.data.attributes.usesEncryption, true);
-  assert.equal(body.data.attributes.exempt, true);
+  assert.equal(body.data.attributes.appDescription, "Standard HTTPS only");
+  assert.equal(body.data.attributes.containsProprietaryCryptography, false);
+  assert.equal(body.data.attributes.containsThirdPartyCryptography, false);
   assert.equal(body.data.attributes.availableOnFrenchStore, true);
-  assert.equal("containsProprietaryCryptography" in body.data.attributes, false, "unset flags are not sent");
+  assert.equal("usesEncryption" in body.data.attributes, false, "the spec has no usesEncryption attr");
   assert.deepEqual(body.data.relationships.app.data, { type: "apps", id: "app1" });
+});
+
+test("asc_create_encryption_declaration requires the crypto flags + description", () => {
+  assert.throws(() => parse(createEncryptionDeclarationTool, { appId: "app1", availableOnFrenchStore: true }));
 });
 
 test("asc_assign_encryption_declaration PATCHes the build relationship", async () => {

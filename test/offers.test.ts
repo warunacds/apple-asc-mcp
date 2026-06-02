@@ -53,15 +53,22 @@ test("asc_create_promotional_offer (paid) resolves the price and posts a self-co
   assert.equal(inc.relationships.territory.data.id, "USA");
 });
 
-test("asc_create_promotional_offer (FREE_TRIAL) carries no price and needs no lookup", async () => {
-  const { client, calls } = fakeClient({ post: () => ({ data: { id: "promo2" } }) });
-  await createPromotionalOfferTool.handler(parse(createPromotionalOfferTool, {
+test("asc_create_promotional_offer requires a price even for FREE_TRIAL", async () => {
+  // The spec marks `prices` required regardless of mode, so a priceless offer is rejected up front.
+  assert.throws(() => parse(createPromotionalOfferTool, {
     subscriptionId: "sub1", name: "Free week", offerCode: "FREEWEEK", offerMode: "FREE_TRIAL", duration: "ONE_WEEK",
+  }));
+  // A FREE_TRIAL with a price point still inlines the price block.
+  const { client, calls } = fakeClient({
+    list: () => [{ id: "spp_0", attributes: { customerPrice: "0.00" } }],
+    post: () => ({ data: { id: "promo2" } }),
+  });
+  await createPromotionalOfferTool.handler(parse(createPromotionalOfferTool, {
+    subscriptionId: "sub1", name: "Free week", offerCode: "FREEWEEK", offerMode: "FREE_TRIAL", duration: "ONE_WEEK", customerPrice: "0.00",
   }), { client, config: cfg });
-  assert.equal(calls.some((c) => c.method === "LIST"), false, "free trial → no price-point lookup");
   const body = calls.find((c) => c.method === "POST")!.body as any;
-  assert.equal(body.data.relationships.prices, undefined, "free trial → no prices relationship");
-  assert.equal(body.included, undefined);
+  assert.equal(body.included[0].type, "subscriptionPromotionalOfferPrices");
+  assert.equal(body.included[0].relationships.subscriptionPricePoint.data.id, "spp_0");
 });
 
 test("asc_create_promotional_offer accepts an explicit pricePointId and skips the lookup", async () => {
