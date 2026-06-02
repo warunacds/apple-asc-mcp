@@ -5,7 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Node ≥20](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](https://nodejs.org)
 
-A Model Context Protocol server that lets Claude Code drive an App Store release end-to-end:
+A Model Context Protocol server that lets Claude Code — or any MCP client (Codex, Cursor, Windsurf, …) — drive an App Store release end-to-end:
 
 ```
 xcodebuild → archive → export → upload → metadata → screenshots → submit for review
@@ -34,6 +34,7 @@ Claude does the work; you review the result in App Store Connect and tap **Submi
 - [Apple setup walkthrough](#apple-setup-walkthrough)
 - [Configuration](#configuration)
 - [Wire into Claude Code](#wire-into-claude-code)
+- [Use with any MCP client](#use-with-any-mcp-client)
 - [End-to-end release flow](#end-to-end-release-flow)
 - [Tool reference](#tool-reference)
 - [Troubleshooting](#troubleshooting)
@@ -182,6 +183,25 @@ Verify it loaded with:
 ```
 > Use asc_whoami to check the App Store Connect connection.
 ```
+
+## Use with any MCP client
+
+This is a standard [stdio MCP](https://modelcontextprotocol.io) server — nothing about it is Claude-specific. Any MCP-capable client speaks to it the same way; only the registration differs. Point the client at the `appstore-connect-mcp` command (or `npx -y appstore-connect-mcp`) and pass the three credential env vars.
+
+**OpenAI Codex** — add to `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.appstore-connect]
+command = "npx"
+args = ["-y", "appstore-connect-mcp"]
+env = { APP_STORE_CONNECT_KEY_ID = "ABCDEFGHIJ", APP_STORE_CONNECT_ISSUER_ID = "11111111-2222-3333-4444-555555555555", APP_STORE_CONNECT_PRIVATE_KEY_PATH = "/Users/me/.appstoreconnect/private_keys/AuthKey_ABCDEFGHIJ.p8" }
+```
+
+(Recent Codex also has a `codex mcp add` helper — see `codex mcp --help`.)
+
+**Cursor / Windsurf / VS Code / Zed / Cline** and most others use the same JSON shape as the `~/.claude.json` block above — a `mcpServers` (or editor-specific) entry with `command`, `args`, and `env`. Drop the same three env vars in.
+
+> **Heads-up on the tool count.** This server exposes ~150 tools. Claude Code lazy-loads tool schemas, so the full surface costs almost nothing in context until a tool is used. Clients that **don't** lazy-load register every schema up front — that's token-heavy, and a few clients/models cap how many tools they'll accept. The server works regardless; if your client struggles with large tool sets, that's the cause. (The macOS/Xcode requirement for `xc_archive` / `xc_export_ipa` / `asc_validate_ipa` is an environment constraint, independent of the client.)
 
 ## End-to-end release flow
 
