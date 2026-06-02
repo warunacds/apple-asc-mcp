@@ -12,7 +12,7 @@ body:
     id: version
     attributes:
       label: Version
-      description: "`app-store-connect-mcp --version` or the npm version installed."
+      description: "`apple-asc-mcp --version` or the npm version installed."
       placeholder: "0.2.0"
     validations:
       required: true
@@ -37,7 +37,7 @@ body:
       label: JSON:API error body (if Apple returned one)
       description: >
         The `errors[]` array from the response — `code`, `title`, `detail`, and the `source.pointer`.
-        Redacted request/response logs live at `~/logs/app-store-connect-mcp/<date>.log`. **Scrub any
+        Redacted request/response logs live at `~/logs/apple-asc-mcp/<date>.log`. **Scrub any
         secrets before pasting.**
       render: json
   - type: dropdown

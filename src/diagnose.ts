@@ -64,7 +64,7 @@ function checkVersion(cmd: string, args: string[]): { found: true; version: stri
 }
 
 export async function runDiagnose(): Promise<number> {
-  process.stdout.write(fmt.bold("\napp-store-connect-mcp — diagnose\n\n"));
+  process.stdout.write(fmt.bold("\napple-asc-mcp — diagnose\n\n"));
 
   const results: CheckResult[] = [];
 
@@ -223,6 +223,6 @@ export async function runDiagnose(): Promise<number> {
     process.stdout.write(fmt.yellow(fmt.bold(`Required checks passed; ${warned.length} optional check(s) raised warnings (above).\n`)));
     return 0;
   }
-  process.stdout.write(fmt.red(fmt.bold(`${failedRequired.length} required check(s) failed. Fix the items marked ✗ above and re-run \`app-store-connect-mcp --diagnose\`.\n`)));
+  process.stdout.write(fmt.red(fmt.bold(`${failedRequired.length} required check(s) failed. Fix the items marked ✗ above and re-run \`apple-asc-mcp --diagnose\`.\n`)));
   return 1;
 }

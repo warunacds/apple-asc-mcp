@@ -1,16 +1,16 @@
 {
-  "name": "app-store-connect-mcp",
+  "name": "apple-asc-mcp",
   "version": "0.2.0",
   "description": "Model Context Protocol server that lets Claude Code drive App Store Connect end-to-end (build, upload, metadata, screenshots, submission).",
   "license": "MIT",
-  "author": "app-store-connect-mcp contributors",
-  "homepage": "https://github.com/warunacds/app-store-connect-mcp#readme",
+  "author": "apple-asc-mcp contributors",
+  "homepage": "https://github.com/warunacds/apple-asc-mcp#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/warunacds/app-store-connect-mcp.git"
+    "url": "https://github.com/warunacds/apple-asc-mcp.git"
   },
   "bugs": {
-    "url": "https://github.com/warunacds/app-store-connect-mcp/issues"
+    "url": "https://github.com/warunacds/apple-asc-mcp/issues"
   },
   "keywords": [
     "mcp",
@@ -31,7 +31,7 @@
   ],
   "type": "module",
   "bin": {
-    "app-store-connect-mcp": "./dist/index.js"
+    "apple-asc-mcp": "./dist/index.js"
   },
   "files": [
     "dist",

@@ -2,7 +2,7 @@ import { mkdirSync, appendFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
-const LOG_DIR = join(homedir(), "logs", "app-store-connect-mcp");
+const LOG_DIR = join(homedir(), "logs", "apple-asc-mcp");
 mkdirSync(LOG_DIR, { recursive: true });
 const LOG_FILE = join(LOG_DIR, `${new Date().toISOString().slice(0, 10)}.log`);
 
