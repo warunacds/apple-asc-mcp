@@ -5,8 +5,8 @@ Thanks for considering a contribution. This project's goal is to let Claude driv
 ## Development
 
 ```bash
-git clone https://github.com/warunacds/appstore-connect-mcp
-cd appstore-connect-mcp
+git clone https://github.com/warunacds/app-store-connect-mcp
+cd app-store-connect-mcp
 npm install
 npm run build
 npm test
@@ -51,7 +51,7 @@ Imperative mood, ≤72 chars on the subject line. Body explains the *why* and an
 
 Please include: the tool name, the input you sent (redact secrets), the full error message including the JSON:API `code` and `pointer`, the App Store Connect API key role, and your Node + Xcode versions.
 
-`~/logs/appstore-connect-mcp/<date>.log` has the full request/response trail (with secrets redacted) — attaching the relevant slice is hugely helpful.
+`~/logs/app-store-connect-mcp/<date>.log` has the full request/response trail (with secrets redacted) — attaching the relevant slice is hugely helpful.
 
 ## Releases
 

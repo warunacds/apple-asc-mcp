@@ -1,15 +1,18 @@
 #!/usr/bin/env node
 /**
- * appstore-connect-mcp — Model Context Protocol server that lets Claude drive
+ * app-store-connect-mcp — Model Context Protocol server that lets Claude drive
  * App Store Connect end-to-end (build, upload, metadata, screenshots, submit).
  *
  * Transport: stdio. Wire it into Claude Code via:
- *   claude mcp add appstore-connect-mcp -- node /path/to/dist/index.js
+ *   claude mcp add app-store-connect-mcp -- node /path/to/dist/index.js
  *
  * `--diagnose` runs a credential / Xcode preflight and exits without starting MCP.
  *
- * All output to stdout is the MCP protocol; logs go to stderr and ~/logs/appstore-connect-mcp/.
+ * All output to stdout is the MCP protocol; logs go to stderr and ~/logs/app-store-connect-mcp/.
  */
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
@@ -25,6 +28,13 @@ import { jsonSchemaFor, type ToolContext } from "./tools/registry.js";
 import { log } from "./log.js";
 import { runDiagnose } from "./diagnose.js";
 
+// Single source of truth for the version. package.json ships at the package
+// root, one level up from this file's compiled location in dist/.
+const VERSION: string = JSON.parse(
+  readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "package.json"), "utf8"),
+).version;
+const SERVER_NAME = "app-store-connect-mcp";
+
 async function main() {
   const argv = process.argv.slice(2);
   if (argv.includes("--diagnose") || argv.includes("-d")) {
@@ -36,11 +46,11 @@ async function main() {
     process.exit(0);
   }
   if (argv.includes("--version") || argv.includes("-v")) {
-    process.stdout.write("appstore-connect-mcp 0.1.0-alpha.1\n");
+    process.stdout.write(`${SERVER_NAME} ${VERSION}\n`);
     process.exit(0);
   }
 
-  log.info("appstore-connect-mcp starting", { pid: process.pid, node: process.version });
+  log.info("app-store-connect-mcp starting", { pid: process.pid, node: process.version });
 
   // Lazy: don't fail startup if creds are missing — let `asc_whoami` surface the error
   // when first called. This lets the server boot in environments where creds aren't yet set.
@@ -58,7 +68,7 @@ async function main() {
   }
 
   const server = new Server(
-    { name: "appstore-connect-mcp", version: "0.1.0-alpha.1" },
+    { name: SERVER_NAME, version: VERSION },
     { capabilities: { tools: {} } },
   );
 
@@ -84,7 +94,7 @@ async function main() {
       return mcpError(
         `App Store Connect credentials are not configured. ${detail} ` +
         `Set APP_STORE_CONNECT_KEY_ID, APP_STORE_CONNECT_ISSUER_ID, and APP_STORE_CONNECT_PRIVATE_KEY_PATH (or place AuthKey_<KEYID>.p8 under ~/.appstoreconnect/private_keys/). ` +
-        `Run \`appstore-connect-mcp --diagnose\` to debug interactively.`,
+        `Run \`app-store-connect-mcp --diagnose\` to debug interactively.`,
       );
     }
 
@@ -114,7 +124,7 @@ async function main() {
 
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  log.info("appstore-connect-mcp ready (stdio)");
+  log.info("app-store-connect-mcp ready (stdio)");
 
   // Graceful shutdown — give in-flight tool calls a moment to finish before exit.
   const shutdown = (sig: string) => {
@@ -155,10 +165,10 @@ function redactArgs(args: unknown): unknown {
 }
 
 function usage(): string {
-  return `appstore-connect-mcp — Model Context Protocol server for App Store Connect
+  return `app-store-connect-mcp — Model Context Protocol server for App Store Connect
 
 USAGE
-  appstore-connect-mcp [options]
+  app-store-connect-mcp [options]
 
 OPTIONS
   --diagnose, -d   Run preflight checks (creds, JWT, API reachability, Xcode) and exit.
@@ -173,10 +183,10 @@ ENVIRONMENT
   APP_STORE_CONNECT_PREFER_REST_UPLOAD  "true" (default) or "false"
 
 EXAMPLES
-  appstore-connect-mcp --diagnose
-  claude mcp add appstore-connect-mcp -- node $(npm root -g)/appstore-connect-mcp/dist/index.js
+  app-store-connect-mcp --diagnose
+  claude mcp add app-store-connect-mcp -- node $(npm root -g)/app-store-connect-mcp/dist/index.js
 
-Logs: ~/logs/appstore-connect-mcp/<date>.log
+Logs: ~/logs/app-store-connect-mcp/<date>.log
 `;
 }
 
