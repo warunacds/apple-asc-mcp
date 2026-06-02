@@ -37,7 +37,7 @@ Claude does the work; you review the result in App Store Connect and tap **Submi
 
 ## What it does
 
-134 MCP tools split across:
+138 MCP tools split across:
 
 - **Discovery** (11) — `asc_whoami`, list/get apps, builds, versions, localizations, categories, territories, plus `asc_release_status`: a one-shot snapshot that tells Claude what's blocking submission.
 - **Build & upload** (5) — `xc_archive`, `xc_export_ipa`, `asc_validate_ipa`, `asc_upload_ipa` (defaults to the new REST `/v1/buildUploads` flow from WWDC 2025; falls back to `xcrun altool` on demand), `asc_wait_for_build_processing`.
@@ -49,10 +49,10 @@ Claude does the work; you review the result in App Store Connect and tap **Submi
 - **Review submission** (4) — modern `reviewSubmissions` flow.
 - **Customer reviews** (4) — list/read App Store reviews and post/edit/delete the developer response.
 - **TestFlight** (4) — list beta groups, set "What to test", distribute, submit for beta review.
-- **In-App Purchases** (9) — create products, upsert per-locale name/description, price (base territory + auto-equalize), set availability, attach a review screenshot, submit. Consumable / Non-Consumable / Non-Renewing Subscription.
-- **Subscriptions** (12) — subscription groups + group localizations, create auto-renewable subscriptions, per-locale name/description, pricing (base + auto-equalize), availability, introductory offers (free trial / pay-as-you-go / pay-up-front), review screenshot, and group-level submission.
+- **In-App Purchases** (10) — create products, upsert per-locale name/description, price (base territory + auto-equalize), set availability, attach a review screenshot, submit, and delete. Consumable / Non-Consumable / Non-Renewing Subscription.
+- **Subscriptions** (14) — subscription groups + group localizations, create auto-renewable subscriptions, per-locale name/description, pricing (base + auto-equalize), availability, introductory offers (free trial / pay-as-you-go / pay-up-front), review screenshot, group-level submission, and delete (subscription + empty group).
 - **Subscription promotional offers** (4) — create/list/delete promotional offers (discounts for existing/lapsed subscribers) and add per-territory offer prices.
-- **Subscription offer codes & win-back** (6) — offer codes (NEW/EXISTING/EXPIRED eligibility) with custom or one-time-use redeemable codes, and win-back offers for lapsed subscribers.
+- **Subscription offer codes & win-back** (7) — offer codes (NEW/EXISTING/EXPIRED eligibility) with custom or one-time-use redeemable codes, and win-back offers (create/list/delete) for lapsed subscribers.
 - **Provisioning** (13) — bundle IDs + capabilities, signing certificates, test devices, and provisioning profiles (code-signing automation, same auth as the rest).
 - **Webhooks** (6) — create/list/update/delete app-event webhooks, ping, list deliveries.
 - **Users & access** (6) — list/get/update team members, list/invite/cancel invitations (Admin key required).
@@ -334,6 +334,7 @@ Covers Consumable, Non-Consumable, and Non-Renewing Subscription products. Auto-
 | `asc_set_iap_availability` | `inAppPurchaseId` | Territory availability (codes or `availableInAllTerritories`) |
 | `asc_upload_iap_review_screenshot` | `inAppPurchaseId`, `filePath` | Reservation → PUT → MD5 commit (App Review screenshot) |
 | `asc_submit_iap_for_review` | `inAppPurchaseId` | Standalone IAP submission (or bundle via `asc_submit_for_review`) |
+| `asc_delete_in_app_purchase` | `inAppPurchaseId` | Permanently delete an IAP (only while still editable) |
 
 Typical flow:
 
@@ -366,6 +367,8 @@ Auto-renewable subscriptions. A subscription lives inside a subscription **group
 | `asc_set_subscription_intro_offer` | `subscriptionId`, `offerMode`, `duration` | Free trial / pay-as-you-go / pay-up-front offer |
 | `asc_upload_subscription_review_screenshot` | `subscriptionId`, `filePath` | Reservation → PUT → MD5 commit |
 | `asc_submit_subscription_for_review` | `subscriptionGroupId` | Submit the whole group for review |
+| `asc_delete_subscription` | `subscriptionId` | Permanently delete a subscription (only while still editable) |
+| `asc_delete_subscription_group` | `subscriptionGroupId` | Delete an empty subscription group |
 
 Typical flow:
 

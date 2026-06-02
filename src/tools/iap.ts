@@ -314,6 +314,19 @@ export const uploadIapReviewScreenshotTool = tool({
   },
 });
 
+export const deleteInAppPurchaseTool = tool({
+  name: "asc_delete_in_app_purchase",
+  description:
+    "Permanently delete an in-app purchase (DELETE /v2/inAppPurchases/{id}). Use asc_list_in_app_purchases to find " +
+    "the id. Only works while the product is still editable — Apple rejects deletes once it has been approved or is " +
+    "in review. This cannot be undone.",
+  inputSchema: z.object({ inAppPurchaseId: z.string() }).strict(),
+  handler: async (input, { client }) => {
+    await client.delete(`/v2/inAppPurchases/${input.inAppPurchaseId}`);
+    return { ok: true, deleted: input.inAppPurchaseId };
+  },
+});
+
 export const submitIapForReviewTool = tool({
   name: "asc_submit_iap_for_review",
   description:

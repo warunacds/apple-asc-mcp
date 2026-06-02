@@ -48,6 +48,12 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
   than shipped broken.
 
 ### Added
+- **Delete tools for monetization resources** (4) — `asc_delete_in_app_purchase` (DELETE `/v2/inAppPurchases/{id}`),
+  `asc_delete_subscription` (DELETE `/v1/subscriptions/{id}`), `asc_delete_subscription_group` (DELETE
+  `/v1/subscriptionGroups/{id}`; the group must be empty first), and `asc_delete_win_back_offer` (DELETE
+  `/v1/winBackOffers/{id}`, mirroring the existing `asc_delete_promotional_offer`). Each completes the CRUD
+  surface for a resource that previously could only be created via the API. Deletes are only accepted while
+  the resource is still editable (Apple rejects them once approved/in review).
 - **Auto-renewable subscriptions** — 12 tools: `asc_list_subscription_groups`, `asc_create_subscription_group`, `asc_set_subscription_group_localization`, `asc_create_subscription`, `asc_get_subscription`, `asc_set_subscription_localization`, `asc_list_subscription_price_points`, `asc_set_subscription_price` (base territory + auto-equalize, with `preserveCurrentPrice`), `asc_set_subscription_availability`, `asc_set_subscription_intro_offer` (free trial / pay-as-you-go / pay-up-front), `asc_upload_subscription_review_screenshot`, and `asc_submit_subscription_for_review` (group-level).
 - **In-App Purchases (v2)** — 9 tools covering the full IAP path: `asc_list_in_app_purchases`, `asc_get_in_app_purchase`, `asc_create_in_app_purchase`, `asc_set_iap_localization` (upsert display name + description per locale), `asc_list_iap_price_points`, `asc_set_iap_price` (base territory + auto-equalize), `asc_set_iap_availability`, `asc_upload_iap_review_screenshot` (reuses the existing asset-upload runner), and `asc_submit_iap_for_review`.
 - **App pricing** — `asc_list_app_price_points`, `asc_get_app_price_schedule`, and `asc_set_app_price` (free or paid; base territory + auto-equalize, or an explicit price point). The app's own price, distinct from in-app-purchase pricing.

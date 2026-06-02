@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   listOfferCodesTool, createOfferCodeTool, createOfferCodeCustomCodesTool,
-  createOfferCodeOneTimeCodesTool, listWinBackOffersTool, createWinBackOfferTool,
+  createOfferCodeOneTimeCodesTool, listWinBackOffersTool, createWinBackOfferTool, deleteWinBackOfferTool,
 } from "../src/tools/offer_codes.ts";
 import type { AscClient } from "../src/client.ts";
 import type { AscConfig } from "../src/config.ts";
@@ -12,11 +12,13 @@ interface Call { method: string; path: string; body?: unknown; }
 function fakeClient(responses: {
   list?: (path: string) => unknown[];
   post?: (path: string, body: unknown) => unknown;
+  del?: (path: string) => unknown;
 }) {
   const calls: Call[] = [];
   const client = {
     async list(path: string) { calls.push({ method: "LIST", path }); return responses.list?.(path) ?? []; },
     async post(path: string, body: unknown) { calls.push({ method: "POST", path, body }); return responses.post?.(path, body) ?? { data: { id: "new" } }; },
+    async delete(path: string) { calls.push({ method: "DELETE", path }); return responses.del?.(path); },
   } as unknown as AscClient;
   return { client, calls };
 }
@@ -126,4 +128,11 @@ test("asc_list_offer_codes / asc_list_win_back_offers hit the subscription sub-r
   const paths = calls.filter((c) => c.method === "LIST").map((c) => c.path);
   assert.ok(paths.includes("/v1/subscriptions/sub1/offerCodes"));
   assert.ok(paths.includes("/v1/subscriptions/sub1/winBackOffers"));
+});
+
+test("asc_delete_win_back_offer DELETEs the offer", async () => {
+  const { client, calls } = fakeClient({});
+  const out = await deleteWinBackOfferTool.handler(parse(deleteWinBackOfferTool, { winBackOfferId: "wb1" }), { client, config: cfg }) as { deleted: string };
+  assert.equal(calls.find((c) => c.method === "DELETE")!.path, "/v1/winBackOffers/wb1");
+  assert.equal(out.deleted, "wb1");
 });
