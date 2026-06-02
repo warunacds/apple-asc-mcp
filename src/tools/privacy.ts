@@ -26,13 +26,18 @@ export const listPrivacyOptionsTool = tool({
     "Use the returned ids with asc_add_data_usage.",
   inputSchema: z.object({}).strict(),
   handler: async (_input, { client }) => {
-    const [categories, purposes, dataProtections] = await Promise.all([
-      client.list<{ deleted?: boolean }>("/v1/appDataUsageCategories", { limit: 200 }),
-      client.list<{ deleted?: boolean }>("/v1/appDataUsagePurposes", { limit: 200 }),
-      client.list<{ deleted?: boolean }>("/v1/appDataUsageDataProtections", { limit: 200 }),
-    ]);
+    // [VERIFY] These reference endpoints are NOT confirmed — a live call returned 404 PATH_ERROR for
+    // `v1/appDataUsagePurposes`, so the App Privacy data-usage resource model here is likely wrong and
+    // needs correcting against the real spec. Fetched best-effort per list so one bad name doesn't sink
+    // the others, and so the result reveals which (if any) resolve.
     const shape = (rs: { id: string; attributes?: Record<string, unknown> }[]) => rs.map((r) => ({ id: r.id, ...r.attributes }));
-    return { categories: shape(categories), purposes: shape(purposes), dataProtections: shape(dataProtections) };
+    const fetch1 = (path: string) => client.list<{ deleted?: boolean }>(path, { limit: 200 }).then(shape).catch((e) => ({ error: String((e as Error).message).slice(0, 200) }));
+    const [categories, purposes, dataProtections] = await Promise.all([
+      fetch1("/v1/appDataUsageCategories"),
+      fetch1("/v1/appDataUsagePurposes"),
+      fetch1("/v1/appDataUsageDataProtections"),
+    ]);
+    return { categories, purposes, dataProtections };
   },
 });
 

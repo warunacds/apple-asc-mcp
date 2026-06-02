@@ -74,9 +74,11 @@ export const setAgeRatingTool = tool({
   name: "asc_set_age_rating",
   description:
     "Set the age-rating questionnaire for an app. Frequency questions take NONE / INFREQUENT_OR_MILD / " +
-    "FREQUENT_OR_INTENSE; only the fields you pass are changed. Resolves the editable AppInfo and its declaration " +
-    "automatically. Apple revised the questionnaire in 2024–25 — use additionalDeclarations for any question not " +
-    "in the typed list.",
+    "FREQUENT_OR_INTENSE. Apple requires the WHOLE questionnaire on each write, so this merges your answers onto " +
+    "the app's current declaration and sends the full set — a brand-new (all-null) declaration must be answered in " +
+    "full. Apple revised the questionnaire in 2024–25 (added advertising, gunsOrOtherWeapons, healthOrWellnessTopics, " +
+    "lootBox, messagingAndChat, parentalControls, userGeneratedContent, ageAssurance, …) — pass those via " +
+    "additionalDeclarations.",
   inputSchema: z.object({
     appId: z.string(),
     appInfoId: z.string().optional().describe("Skip AppInfo resolution by passing it directly."),
@@ -99,20 +101,23 @@ export const setAgeRatingTool = tool({
   }).strict(),
   handler: async (input, { client }) => {
     const appInfoId = input.appInfoId ?? (await resolveAppInfoId(client, input.appId));
-    const decl = await client.get<{ data?: { id: string } | null }>(`/v1/appInfos/${appInfoId}/ageRatingDeclaration`);
-    const declId = decl?.data?.id;
-    if (!declId) throw new Error(`No ageRatingDeclaration found on AppInfo ${appInfoId}.`);
+    const decl = await client.get<{ data?: { id: string; attributes?: Record<string, unknown> } | null }>(`/v1/appInfos/${appInfoId}/ageRatingDeclaration`);
+    if (!decl?.data?.id) throw new Error(`No ageRatingDeclaration found on AppInfo ${appInfoId}.`);
+    const declId = decl.data.id;
 
-    const attributes: Record<string, unknown> = {};
+    // The age-rating PATCH is all-or-nothing: Apple requires the COMPLETE questionnaire on every write
+    // (confirmed live — a partial PATCH 409s listing every missing field). So we merge the caller's answers
+    // onto the current declaration and send the full set. A fresh declaration whose answers are all null
+    // must be answered in full (typed fields + additionalDeclarations) — the 409 names what's still missing.
+    const provided: Record<string, unknown> = {};
     for (const k of AGE_RATING_FIELDS) {
-      if (input[k] !== undefined) attributes[k] = input[k];
+      if (input[k] !== undefined) provided[k] = input[k];
     }
-    // [VERIFY] questionnaire field names/values shift with Apple's age-rating revisions; additionalDeclarations
-    // lets callers set fields this tool doesn't yet know about. We PATCH only what's provided.
-    if (input.additionalDeclarations) Object.assign(attributes, input.additionalDeclarations);
-    if (Object.keys(attributes).length === 0) {
-      throw new Error("No age-rating fields provided. Pass at least one questionnaire field or additionalDeclarations.");
+    if (input.additionalDeclarations) Object.assign(provided, input.additionalDeclarations);
+    if (Object.keys(provided).length === 0) {
+      throw new Error("No age-rating fields provided. Pass questionnaire fields and/or additionalDeclarations.");
     }
+    const attributes = { ...(decl.data.attributes ?? {}), ...provided };
 
     const res = await client.patch(`/v1/ageRatingDeclarations/${declId}`, {
       data: { type: "ageRatingDeclarations", id: declId, attributes },

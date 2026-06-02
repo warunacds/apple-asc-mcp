@@ -39,9 +39,10 @@ export const getAppPriceScheduleTool = tool({
   description: "Read the app's current price schedule (base territory + manual prices). Returns null-ish if no price is set yet.",
   inputSchema: z.object({ appId: z.string() }).strict(),
   handler: async (input, { client }) => {
+    // Best-effort: an app with no price set yet 404s this singleton (confirmed live) — degrade to null.
     return await client.get(`/v1/apps/${input.appId}/appPriceSchedule`, {
       query: { include: "baseTerritory,manualPrices" },
-    });
+    }).catch(() => ({ data: null, note: "No price schedule set for this app yet (or not readable)." }));
   },
 });
 

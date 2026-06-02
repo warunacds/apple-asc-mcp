@@ -9,12 +9,11 @@ import { tool } from "./registry.js";
 
 export const getGameCenterDetailTool = tool({
   name: "asc_get_game_center_detail",
-  description: "Get the Game Center detail for an app (id + arcadeEnabled/challengeEnabled). The id anchors achievements and leaderboards.",
+  description: "Get the Game Center detail for an app. The id anchors achievements and leaderboards.",
   inputSchema: z.object({ appId: z.string() }).strict(),
   handler: async (input, { client }) => {
-    return await client.get(`/v1/apps/${input.appId}/gameCenterDetail`, {
-      query: { "fields[gameCenterDetails]": "arcadeEnabled,challengeEnabled" },
-    });
+    // No fields filter — `challengeEnabled` is not a valid field on gameCenterDetails (confirmed live).
+    return await client.get(`/v1/apps/${input.appId}/gameCenterDetail`).catch(() => ({ data: null }));
   },
 });
 

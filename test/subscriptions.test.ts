@@ -91,7 +91,7 @@ test("asc_set_subscription_group_localization creates then updates", async () =>
   assert.equal(calls.find((c) => c.method === "PATCH")!.path, "/v1/subscriptionGroupLocalizations/loc1");
 });
 
-test("asc_set_subscription_price resolves customerPrice and posts subscription/pricePoint/territory", async () => {
+test("asc_set_subscription_price resolves customerPrice and posts subscription/pricePoint (no territory)", async () => {
   const { client, calls } = fakeClient({
     list: (path) => path.includes("/pricePoints")
       ? [{ id: "spp_low", attributes: { customerPrice: "0.99" } }, { id: "spp_hi", attributes: { customerPrice: "9.99" } }]
@@ -107,7 +107,7 @@ test("asc_set_subscription_price resolves customerPrice and posts subscription/p
   assert.equal(body.data.type, "subscriptionPrices");
   assert.equal(body.data.attributes.preserveCurrentPrice, true);
   assert.deepEqual(body.data.relationships.subscriptionPricePoint.data, { type: "subscriptionPricePoints", id: "spp_hi" });
-  assert.deepEqual(body.data.relationships.territory.data, { type: "territories", id: "USA" });
+  assert.equal(body.data.relationships.territory, undefined, "subscription prices omit territory — the price point encodes it");
 });
 
 test("asc_set_subscription_price accepts an explicit pricePointId and skips the lookup", async () => {
