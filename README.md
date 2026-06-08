@@ -106,6 +106,20 @@ export APP_STORE_CONNECT_ISSUER_ID=11111111-2222-3333-4444-555555555555
 export APP_STORE_CONNECT_PRIVATE_KEY_PATH=~/.appstoreconnect/private_keys/AuthKey_ABCDEFGHIJ.p8
 ```
 
+These last only for the current terminal. To make them permanent, append the three lines to your shell's startup file, then reload it:
+
+```bash
+# zsh (default on macOS)
+cat >> ~/.zshrc <<'EOF'
+export APP_STORE_CONNECT_KEY_ID=ABCDEFGHIJ
+export APP_STORE_CONNECT_ISSUER_ID=11111111-2222-3333-4444-555555555555
+export APP_STORE_CONNECT_PRIVATE_KEY_PATH=~/.appstoreconnect/private_keys/AuthKey_ABCDEFGHIJ.p8
+EOF
+source ~/.zshrc
+
+# bash — same, but use ~/.bashrc (Linux) or ~/.bash_profile (macOS)
+```
+
 ### Step 3 — Verify your setup
 
 ```bash
