@@ -79,25 +79,48 @@ See the [tool reference](#tool-reference) for the full table.
 
 ## Quick start
 
-Requires **Node 20+**. macOS 13+ with Xcode is needed for the build/archive tools and the altool upload fallback. Everything else runs cross-platform.
+**Prerequisites**
+
+- **Node 20+.** macOS 13+ with Xcode is only needed for the build/archive/validate tools (`xc_archive`, `xc_export_ipa`, `asc_validate_ipa`) and the altool upload fallback — everything else runs cross-platform.
+- **An App Store Connect API key** (`.p8` + Key ID + Issuer ID). If you don't have one yet, get it first via the [Apple setup walkthrough](#apple-setup-walkthrough), then come back to Step 2.
+
+### Step 1 — Install
 
 ```bash
-# 1. Install
 npm install -g apple-asc-mcp
-# or use it without installing:
-# npx apple-asc-mcp --diagnose
+```
 
-# 2. Set credentials (see Apple setup walkthrough below)
+Or skip the install and run it on demand with `npx`:
+
+```bash
+npx apple-asc-mcp --diagnose
+```
+
+### Step 2 — Set your credentials
+
+If you haven't created an API key yet, follow the [Apple setup walkthrough](#apple-setup-walkthrough) to generate it and place the `.p8`. Then export the three credentials in your current shell:
+
+```bash
 export APP_STORE_CONNECT_KEY_ID=ABCDEFGHIJ
 export APP_STORE_CONNECT_ISSUER_ID=11111111-2222-3333-4444-555555555555
 export APP_STORE_CONNECT_PRIVATE_KEY_PATH=~/.appstoreconnect/private_keys/AuthKey_ABCDEFGHIJ.p8
+```
 
-# 3. Verify your setup
+### Step 3 — Verify your setup
+
+```bash
 apple-asc-mcp --diagnose
+```
 
-# 4. Wire into Claude Code
+You should see **all checks pass**. If anything fails, the diagnose output names the file/env var to fix.
+
+### Step 4 — Wire into Claude Code
+
+```bash
 claude mcp add apple-asc-mcp -- apple-asc-mcp
 ```
+
+Using a different MCP client (Codex, Cursor, Windsurf, …)? See [Use with any MCP client](#use-with-any-mcp-client).
 
 That's it. In Claude Code:
 
