@@ -1,6 +1,5 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { gzipSync } from "node:zlib";
 import {
   listBetaFeedbackCrashesTool, getBetaFeedbackCrashTool, getBetaFeedbackCrashLogTool,
   getBetaCrashLogByIdTool, deleteBetaFeedbackCrashTool, listBetaFeedbackScreenshotsTool,
@@ -16,14 +15,14 @@ interface Call { method: string; path: string; body?: unknown; query?: unknown; 
 function fakeClient(responses: {
   list?: (path: string) => unknown[];
   get?: (path: string) => unknown;
-  getRaw?: (path: string) => Buffer;
+  getOne?: (path: string) => unknown;
   del?: (path: string) => unknown;
 }) {
   const calls: Call[] = [];
   const client = {
     async list(path: string, query?: unknown) { calls.push({ method: "LIST", path, query }); return responses.list?.(path) ?? []; },
     async get(path: string, opts?: { query?: unknown }) { calls.push({ method: "GET", path, query: opts?.query }); return responses.get?.(path); },
-    async getRaw(path: string) { calls.push({ method: "GETRAW", path }); return responses.getRaw?.(path) ?? Buffer.from(""); },
+    async getOne(path: string) { calls.push({ method: "GETONE", path }); return responses.getOne?.(path) ?? { id: "", type: "", attributes: {} }; },
     async delete(path: string, opts?: { body?: unknown }) { calls.push({ method: "DELETE", path, body: opts?.body }); return responses.del?.(path); },
   } as unknown as AscClient;
   return { client, calls };
@@ -108,22 +107,26 @@ test("asc_get_beta_feedback_crash strips PII when includePii=false and sideloads
   assert.equal("comment" in out.data.attributes, false);
 });
 
-test("asc_get_beta_feedback_crash_log gunzips, truncates, and reports counts", async () => {
+test("asc_get_beta_feedback_crash_log reads the crashLog resource, truncates, and reports counts", async () => {
   const full = "x".repeat(120);
-  const { client, calls } = fakeClient({ getRaw: () => gzipSync(Buffer.from(full, "utf8")) });
+  const { client, calls } = fakeClient({
+    getOne: () => ({ id: "crash-log-1", type: "betaCrashLogs", attributes: { logText: full } }),
+  });
   const out = await getBetaFeedbackCrashLogTool.handler(
     parse(getBetaFeedbackCrashLogTool, { submissionId: "c1", maxLogChars: 50 }),
     { client, config: cfg },
   ) as { totalCharacters: number; returnedCharacters: number; truncated: boolean; logText: string };
-  assert.equal(calls.find((c) => c.method === "GETRAW")!.path, "/v1/betaFeedbackCrashSubmissions/c1/crashLog");
+  assert.equal(calls.find((c) => c.method === "GETONE")!.path, "/v1/betaFeedbackCrashSubmissions/c1/crashLog");
   assert.equal(out.totalCharacters, 120);
   assert.equal(out.returnedCharacters, 50);
   assert.equal(out.truncated, true);
   assert.equal(out.logText.length, 50);
 });
 
-test("asc_get_beta_feedback_crash_log falls back to plain utf8 when not gzipped", async () => {
-  const { client } = fakeClient({ getRaw: () => Buffer.from("plain crash text", "utf8") });
+test("asc_get_beta_feedback_crash_log returns the full log untruncated when under the limit", async () => {
+  const { client } = fakeClient({
+    getOne: () => ({ id: "crash-log-1", type: "betaCrashLogs", attributes: { logText: "plain crash text" } }),
+  });
   const out = await getBetaFeedbackCrashLogTool.handler(
     parse(getBetaFeedbackCrashLogTool, { submissionId: "c1" }),
     { client, config: cfg },
@@ -134,12 +137,14 @@ test("asc_get_beta_feedback_crash_log falls back to plain utf8 when not gzipped"
 });
 
 test("asc_get_beta_crash_log_by_id reads /v1/betaCrashLogs/:id", async () => {
-  const { client, calls } = fakeClient({ getRaw: () => gzipSync(Buffer.from("log", "utf8")) });
+  const { client, calls } = fakeClient({
+    getOne: () => ({ id: "log1", type: "betaCrashLogs", attributes: { logText: "log" } }),
+  });
   const out = await getBetaCrashLogByIdTool.handler(
     parse(getBetaCrashLogByIdTool, { crashLogId: "log1" }),
     { client, config: cfg },
   ) as { logText: string; truncated: boolean };
-  assert.equal(calls.find((c) => c.method === "GETRAW")!.path, "/v1/betaCrashLogs/log1");
+  assert.equal(calls.find((c) => c.method === "GETONE")!.path, "/v1/betaCrashLogs/log1");
   assert.equal(out.logText, "log");
   assert.equal(out.truncated, false);
 });

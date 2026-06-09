@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { gunzipSync } from "node:zlib";
 import { tool } from "./registry.js";
 
 /**
@@ -15,9 +14,9 @@ import { tool } from "./registry.js";
  * stripping is done in the handler by removing `email`/`comment` from attributes. [VERIFY] both the
  * field names that count as PII and whether Apple already omits them.
  *
- * Crash logs are downloaded as a raw body (gzipped plaintext per the reference implementation) and
- * gunzipped client-side with a plain-utf8 fallback, mirroring src/tools/reports.ts. [VERIFY] the
- * transport: whether the body is gzipped vs plain and whether `getRaw` needs a special Accept header.
+ * A crash log is a normal JSON:API resource (`betaCrashLogs`) whose `logText` attribute holds the
+ * plaintext log; it is fetched with an ordinary GET and truncated client-side. (Confirmed against the
+ * reference implementation's handler and fixtures — not a binary/gzip download.)
  *
  * Not validated against live Apple traffic; response shapes are inferred and marked [VERIFY].
  */
@@ -69,26 +68,20 @@ function stripPii(attributes: Record<string, unknown>): Record<string, unknown> 
 const MAX_LOG_CHARS_DEFAULT = 100_000;
 
 /**
- * Download a crash log body and return it truncated to `maxChars`. The body is gunzipped if it is
- * gzip, otherwise read as utf8 (reports.ts fallback). `totalCharacters`/`returnedCharacters`/
- * `truncated` describe the full text vs what is returned.
+ * Fetch a betaCrashLogs resource and return its `logText` truncated to `maxChars`.
+ * `totalCharacters`/`returnedCharacters`/`truncated` describe the full text vs what is returned.
  */
 async function readCrashLog(
-  client: { getRaw: (path: string) => Promise<Buffer> },
+  client: { getOne: (path: string) => Promise<{ id: string; type: string; attributes?: { logText?: string } }> },
   path: string,
   maxChars: number,
 ) {
-  const buf = await client.getRaw(path);
-  let text: string;
-  try {
-    text = gunzipSync(buf).toString("utf8");
-  } catch {
-    text = buf.toString("utf8"); // body may already be plain text
-  }
+  const data = await client.getOne(path);
+  const text = data.attributes?.logText ?? "";
   const totalCharacters = text.length;
   const truncated = totalCharacters > maxChars;
   const logText = truncated ? text.slice(0, maxChars) : text;
-  return { totalCharacters, returnedCharacters: logText.length, truncated, logText };
+  return { id: data.id, type: data.type, totalCharacters, returnedCharacters: logText.length, truncated, logText };
 }
 
 export const listBetaFeedbackCrashesTool = tool({
@@ -144,7 +137,6 @@ export const getBetaFeedbackCrashLogTool = tool({
     maxLogChars: z.number().int().min(1).max(500_000).default(MAX_LOG_CHARS_DEFAULT).optional(),
   }).strict(),
   handler: async (input, { client }) => {
-    // [VERIFY] crashLog returns the log body directly (gzip vs plain) — see file header.
     return readCrashLog(client, `/v1/betaFeedbackCrashSubmissions/${input.submissionId}/crashLog`, input.maxLogChars ?? MAX_LOG_CHARS_DEFAULT);
   },
 });
@@ -159,7 +151,6 @@ export const getBetaCrashLogByIdTool = tool({
     maxLogChars: z.number().int().min(1).max(500_000).default(MAX_LOG_CHARS_DEFAULT).optional(),
   }).strict(),
   handler: async (input, { client }) => {
-    // [VERIFY] /v1/betaCrashLogs/:id returns the log body directly (gzip vs plain) — see file header.
     return readCrashLog(client, `/v1/betaCrashLogs/${input.crashLogId}`, input.maxLogChars ?? MAX_LOG_CHARS_DEFAULT);
   },
 });
