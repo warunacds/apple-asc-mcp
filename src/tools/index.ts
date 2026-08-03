@@ -33,7 +33,32 @@ import {
 import { uploadIpaTool, validateIpaTool, waitForBuildTool } from "./upload.js";
 import { xcArchiveTool, xcExportTool } from "./xcode_tools.js";
 import { submitForReviewTool, getReviewSubmissionTool, listReviewSubmissionsTool, cancelReviewSubmissionTool } from "./reviews.js";
-import { listBetaGroupsTool, setBetaWhatsNewTool, distributeToBetaGroupsTool, submitForBetaReviewTool } from "./testflight.js";
+import {
+  listBetaGroupsTool, setBetaWhatsNewTool, distributeToBetaGroupsTool, submitForBetaReviewTool,
+  createBetaGroupTool, updateBetaGroupTool, deleteBetaGroupTool, addTestersToBetaGroupTool,
+  removeTestersFromBetaGroupTool, listBetaGroupTestersTool, removeBuildsFromBetaGroupTool,
+  listBetaTestersTool, searchBetaTestersTool, getBetaTesterTool, createBetaTesterTool,
+  deleteBetaTesterTool, listBetaTesterAppsTool, sendBetaTesterInvitationTool,
+  addBetaTesterToGroupsTool, removeBetaTesterFromGroupsTool, addBetaTesterToBuildsTool,
+  removeBetaTesterFromBuildsTool, removeBetaTesterFromAppTool,
+} from "./testflight.js";
+import {
+  getBuildBetaDetailTool, updateBuildBetaDetailTool, setBuildBetaLocalizationTool,
+  listBuildBetaLocalizationsTool, listBetaGroupsForBuildTool, addBuildToBetaGroupsTool,
+  addTestersToBuildTool, removeTestersFromBuildTool, listBuildIndividualTestersTool,
+  sendBuildBetaNotificationTool,
+} from "./beta_build_details.js";
+import {
+  listBetaAppLocalizationsTool, createBetaAppLocalizationTool, getBetaAppLocalizationTool,
+  updateBetaAppLocalizationTool, deleteBetaAppLocalizationTool, listBetaAppReviewSubmissionsTool,
+  getBetaAppReviewSubmissionTool, getBetaAppReviewDetailsTool, updateBetaAppReviewDetailsTool,
+  listBetaLicenseAgreementsTool, getBetaLicenseAgreementTool, updateBetaLicenseAgreementTool,
+} from "./beta_app.js";
+import {
+  listBetaFeedbackCrashesTool, getBetaFeedbackCrashTool, getBetaFeedbackCrashLogTool,
+  getBetaCrashLogByIdTool, deleteBetaFeedbackCrashTool, listBetaFeedbackScreenshotsTool,
+  getBetaFeedbackScreenshotTool, deleteBetaFeedbackScreenshotTool,
+} from "./beta_feedback.js";
 import { releaseStatusTool } from "./status.js";
 import {
   listBundleIdsTool, createBundleIdTool, deleteBundleIdTool, enableBundleCapabilityTool,
@@ -112,6 +137,29 @@ export const ALL_TOOLS: Tool[] = [
 
   // TestFlight
   listBetaGroupsTool, setBetaWhatsNewTool, distributeToBetaGroupsTool, submitForBetaReviewTool,
+  createBetaGroupTool, updateBetaGroupTool, deleteBetaGroupTool, addTestersToBetaGroupTool,
+  removeTestersFromBetaGroupTool, listBetaGroupTestersTool, removeBuildsFromBetaGroupTool,
+  listBetaTestersTool, searchBetaTestersTool, getBetaTesterTool, createBetaTesterTool,
+  deleteBetaTesterTool, listBetaTesterAppsTool, sendBetaTesterInvitationTool,
+  addBetaTesterToGroupsTool, removeBetaTesterFromGroupsTool, addBetaTesterToBuildsTool,
+  removeBetaTesterFromBuildsTool, removeBetaTesterFromAppTool,
+
+  // TestFlight — build beta details
+  getBuildBetaDetailTool, updateBuildBetaDetailTool, setBuildBetaLocalizationTool,
+  listBuildBetaLocalizationsTool, listBetaGroupsForBuildTool, addBuildToBetaGroupsTool,
+  addTestersToBuildTool, removeTestersFromBuildTool, listBuildIndividualTestersTool,
+  sendBuildBetaNotificationTool,
+
+  // TestFlight — beta app config & license agreements
+  listBetaAppLocalizationsTool, createBetaAppLocalizationTool, getBetaAppLocalizationTool,
+  updateBetaAppLocalizationTool, deleteBetaAppLocalizationTool, listBetaAppReviewSubmissionsTool,
+  getBetaAppReviewSubmissionTool, getBetaAppReviewDetailsTool, updateBetaAppReviewDetailsTool,
+  listBetaLicenseAgreementsTool, getBetaLicenseAgreementTool, updateBetaLicenseAgreementTool,
+
+  // TestFlight — beta feedback (crashes & screenshots)
+  listBetaFeedbackCrashesTool, getBetaFeedbackCrashTool, getBetaFeedbackCrashLogTool,
+  getBetaCrashLogByIdTool, deleteBetaFeedbackCrashTool, listBetaFeedbackScreenshotsTool,
+  getBetaFeedbackScreenshotTool, deleteBetaFeedbackScreenshotTool,
 
   // In-App Purchases (v2)
   listInAppPurchasesTool, getInAppPurchaseTool, createInAppPurchaseTool, setIapLocalizationTool,
