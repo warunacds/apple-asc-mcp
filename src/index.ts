@@ -4,7 +4,7 @@
  * App Store Connect end-to-end (build, upload, metadata, screenshots, submit).
  *
  * Transport: stdio. Wire it into Claude Code via:
- *   claude mcp add apple-asc-mcp -- node /path/to/dist/index.js
+ *   claude mcp add --scope user apple-asc-mcp -- node /path/to/dist/index.js
  *
  * `--diagnose` runs a credential / Xcode preflight and exits without starting MCP.
  *
@@ -184,7 +184,7 @@ ENVIRONMENT
 
 EXAMPLES
   apple-asc-mcp --diagnose
-  claude mcp add apple-asc-mcp -- node $(npm root -g)/apple-asc-mcp/dist/index.js
+  claude mcp add --scope user apple-asc-mcp -e APP_STORE_CONNECT_KEY_ID=… -e APP_STORE_CONNECT_ISSUER_ID=… -- apple-asc-mcp
 
 Logs: ~/logs/apple-asc-mcp/<date>.log
 `;
