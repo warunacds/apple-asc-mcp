@@ -133,12 +133,15 @@ You should see **all checks pass**. If anything fails, the diagnose output names
 Claude Code launches the server in its own environment, which does **not** inherit the `export`s from Step 2. So pass the credentials to the registration directly:
 
 ```bash
-claude mcp add apple-asc-mcp \
+claude mcp add --scope user apple-asc-mcp \
   -e APP_STORE_CONNECT_KEY_ID=ABCDEFGHIJ \
   -e APP_STORE_CONNECT_ISSUER_ID=11111111-2222-3333-4444-555555555555 \
-  -e APP_STORE_CONNECT_PRIVATE_KEY_PATH=~/.appstoreconnect/private_keys/AuthKey_ABCDEFGHIJ.p8 \
   -- apple-asc-mcp
 ```
+
+`--scope user` registers the server globally, for every project. Without it, `claude mcp add` defaults to `local` scope and the server only shows up in the directory you ran the command from.
+
+The `.p8` is found automatically when it lives at `~/.appstoreconnect/private_keys/AuthKey_<KEYID>.p8` (see [Place the .p8](#place-the-p8)). If you keep it somewhere else, add `-e APP_STORE_CONNECT_PRIVATE_KEY_PATH=/absolute/path/to/AuthKey_ABCDEFGHIJ.p8`.
 
 (The Step 2 `export`s still matter — they're what let `apple-asc-mcp --diagnose` find your credentials from the terminal. The `-e` flags are the separate copy Claude Code's server process needs.)
 
@@ -205,14 +208,17 @@ If neither path nor inline PEM is set, the server looks in altool's canonical lo
 Pass the credentials to the registration — Claude Code launches the server in its own environment and won't pick up your shell `export`s:
 
 ```bash
-claude mcp add apple-asc-mcp \
+claude mcp add --scope user apple-asc-mcp \
   -e APP_STORE_CONNECT_KEY_ID=ABCDEFGHIJ \
   -e APP_STORE_CONNECT_ISSUER_ID=11111111-2222-3333-4444-555555555555 \
-  -e APP_STORE_CONNECT_PRIVATE_KEY_PATH=~/.appstoreconnect/private_keys/AuthKey_ABCDEFGHIJ.p8 \
   -- apple-asc-mcp
 ```
 
-…or write the same thing to `~/.claude.json` directly:
+`--scope user` registers the server globally, for every project. Without it, `claude mcp add` defaults to `local` scope and the server only shows up in the directory you ran the command from.
+
+The `.p8` is found automatically when it lives at `~/.appstoreconnect/private_keys/AuthKey_<KEYID>.p8` (see [Place the .p8](#place-the-p8)). If you keep it somewhere else, add `-e APP_STORE_CONNECT_PRIVATE_KEY_PATH=/absolute/path/to/AuthKey_ABCDEFGHIJ.p8`.
+
+…or write the same thing to the top-level `mcpServers` in `~/.claude.json` directly (that's what `--scope user` does):
 
 ```json
 {
@@ -627,7 +633,8 @@ Run `apple-asc-mcp --diagnose` first — it diagnoses about 80% of setup issues 
 | `401 NOT_AUTHORIZED`, only on certain endpoints | Key role too low | Promote to App Manager (or Admin/Finance for pricing/IAP) |
 | `401`, JWT looks fine | Token cached past `exp` | We mint 18-min tokens with a 60s refresh lead; if you fork the code, don't loosen this — Apple's hard cap is 1199 seconds |
 | `Could not import the .p8 private key as PKCS#8 / ES256` | The `.p8` was edited / re-saved and lost its line breaks | Re-download from App Store Connect — keep the file byte-identical |
-| `credentials are not configured` inside Claude Code (or another MCP client), but `apple-asc-mcp --diagnose` passes in the terminal | The server runs in the client's environment and doesn't inherit your shell `export`s | Put the three credentials in the registration's `env` — re-add with `claude mcp add -e APP_STORE_CONNECT_KEY_ID=… -e APP_STORE_CONNECT_ISSUER_ID=… -e APP_STORE_CONNECT_PRIVATE_KEY_PATH=… -- apple-asc-mcp`. See [Wire into Claude Code](#step-4--wire-into-claude-code). |
+| `credentials are not configured` inside Claude Code (or another MCP client), but `apple-asc-mcp --diagnose` passes in the terminal | The server runs in the client's environment and doesn't inherit your shell `export`s | Put the three credentials in the registration's `env` — re-add with `claude mcp add --scope user apple-asc-mcp -e APP_STORE_CONNECT_KEY_ID=… -e APP_STORE_CONNECT_ISSUER_ID=… -- apple-asc-mcp`. See [Wire into Claude Code](#step-4--wire-into-claude-code). |
+| The server works in one project but is missing everywhere else | It was registered without `--scope user`, so it landed in the default `local` scope (that one directory only) | From that directory run `claude mcp remove apple-asc-mcp`, then re-add with `--scope user`. See [Wire into Claude Code](#step-4--wire-into-claude-code). |
 
 ### Upload errors (ITMS-90xxx)
 
